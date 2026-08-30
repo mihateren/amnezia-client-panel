@@ -1,0 +1,1422 @@
+openapi: 3.1.0
+
+info:
+  title: Amnezia Control Panel API
+  version: 1.0.0
+  description: |
+    Backend API платформы управления AmneziaVPN / AmneziaWG.
+    
+    API предназначено для:
+    - управления пользователями и приглашениями;
+    - аутентификации;
+    - управления VPN-устройствами;
+    - получения VPN-конфигураций;
+    - административного управления;
+    - мониторинга и аудита.
+
+servers:
+  - url: https://{host}
+    description: Production server
+    variables:
+      host:
+        default: localhost
+
+tags:
+  - name: Authentication
+    description: Authentication and session management
+  - name: Invitations
+    description: User invitation management
+  - name: Users
+    description: User management
+  - name: Devices
+    description: User VPN device management
+  - name: Device Configuration
+    description: VPN configuration delivery
+  - name: Admin Devices
+    description: Administrative device management
+  - name: Admin Dashboard
+    description: Administrative dashboard
+  - name: Audit
+    description: Audit log
+  - name: Health
+    description: Application health
+
+security:
+  - bearerAuth: [ ]
+
+paths:
+
+  # ============================================================
+  # Authentication
+  # ============================================================
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      operationId: login
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Too many authentication attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      operationId: refreshToken
+      security: [ ]
+      description: |
+        Refresh token is read from an HttpOnly secure cookie.
+        Refresh token must not be supplied in the request body.
+      responses:
+        '200':
+          description: Access token successfully refreshed
+          headers:
+            Set-Cookie:
+              description: Rotated HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout current user
+      operationId: logout
+      responses:
+        '204':
+          description: Successfully logged out
+          headers:
+            Set-Cookie:
+              description: Expired refresh token cookie
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # Invitations
+  # ============================================================
+
+  /api/v1/admin/invitations:
+    post:
+      tags:
+        - Invitations
+      summary: Create user invitation
+      operationId: createInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationRequest'
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/invitations/{token}:
+    get:
+      tags:
+        - Invitations
+      summary: Validate invitation
+      operationId: validateInvitation
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/InvitationToken'
+      responses:
+        '200':
+          description: Invitation is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationValidationResponse'
+        '404':
+          description: Invitation not found or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/invitations/{token}/register:
+    post:
+      tags:
+        - Invitations
+      summary: Register user using invitation
+      operationId: registerUser
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/InvitationToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Nickname already exists or invitation has already been used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================
+  # Users
+  # ============================================================
+
+  /api/v1/admin/users:
+    get:
+      tags:
+        - Users
+      summary: Get users
+      operationId: getUsers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: search
+          in: query
+          description: Search by nickname or internal name
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        '200':
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user details
+      operationId: getUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Users
+      summary: Change user status
+      operationId: updateUserStatus
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserStatusRequest'
+      responses:
+        '200':
+          description: User status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: User cannot be deleted because VPN cleanup failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================
+  # Current user devices
+  # ============================================================
+
+  /api/v1/devices:
+    get:
+      tags:
+        - Devices
+      summary: Get current user's devices
+      operationId: getMyDevices
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: User devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Devices
+      summary: Create VPN device
+      operationId: createDevice
+      description: |
+        Creates a VPN peer on the configured AmneziaWG server.
+        
+        The operation is executed under an application-level VPN lock.
+        The server configuration is read from the VDS before IP allocation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeviceRequest'
+      responses:
+        '201':
+          description: VPN device successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Device limit reached or VPN IP allocation conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: VPN server operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/devices/{deviceId}:
+    get:
+      tags:
+        - Devices
+      summary: Get device
+      operationId: getMyDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Devices
+      summary: Delete VPN device
+      operationId: deleteMyDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '204':
+          description: Device successfully deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: VPN peer could not be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: VPN server operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================
+  # Device configuration
+  # ============================================================
+
+  /api/v1/devices/{deviceId}/config:
+    get:
+      tags:
+        - Device Configuration
+      summary: Get VPN configuration
+      operationId: getDeviceConfig
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+        - name: format
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ConfigFormat'
+      responses:
+        '200':
+          description: VPN configuration
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    type: string
+                    description: VPN configuration text
+                  format:
+                    $ref: '#/components/schemas/ConfigFormat'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/devices/{deviceId}/config/file:
+    get:
+      tags:
+        - Device Configuration
+      summary: Download VPN configuration file
+      operationId: downloadDeviceConfig
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: AmneziaWG configuration file
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/devices/{deviceId}/config/qr:
+    get:
+      tags:
+        - Device Configuration
+      summary: Get VPN configuration as QR code
+      operationId: getDeviceConfigQr
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: QR code PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/devices/{deviceId}/config/link:
+    post:
+      tags:
+        - Device Configuration
+      summary: Create configuration import link
+      operationId: createDeviceConfigLink
+      description: |
+        Creates a link that can be used to import the VPN configuration.
+        
+        The returned link is a secret and must not be written to logs
+        or audit records.
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConfigLinkRequest'
+      responses:
+        '200':
+          description: Configuration link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigLinkResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/config/{token}:
+    get:
+      tags:
+        - Device Configuration
+      summary: Import VPN configuration using link
+      operationId: importConfigByLink
+      security: [ ]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 32
+      responses:
+        '200':
+          description: VPN configuration
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Configuration link is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================
+  # Admin devices
+  # ============================================================
+
+  /api/v1/admin/devices:
+    get:
+      tags:
+        - Admin Devices
+      summary: Get all VPN devices
+      operationId: getAllDevices
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/DeviceStatus'
+      responses:
+        '200':
+          description: All devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDevicePage'
+
+  /api/v1/admin/devices/{deviceId}:
+    get:
+      tags:
+        - Admin Devices
+      summary: Get device details
+      operationId: getAdminDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: Device details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDeviceDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Admin Devices
+      summary: Delete VPN device
+      operationId: deleteAdminDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '204':
+          description: Device deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: VPN peer could not be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================
+  # Admin dashboard
+  # ============================================================
+
+  /api/v1/admin/dashboard:
+    get:
+      tags:
+        - Admin Dashboard
+      summary: Get dashboard information
+      operationId: getAdminDashboard
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+  /api/v1/admin/vpn:
+    get:
+      tags:
+        - Admin Dashboard
+      summary: Get VPN server state
+      operationId: getVpnState
+      responses:
+        '200':
+          description: VPN server state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnState'
+
+  # ============================================================
+  # Audit
+  # ============================================================
+
+  /api/v1/admin/audit:
+    get:
+      tags:
+        - Audit
+      summary: Get audit log
+      operationId: getAuditLog
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: eventType
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditEventType'
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: result
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditResult'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+
+  # ============================================================
+  # Health
+  # ============================================================
+
+  /actuator/health:
+    get:
+      tags:
+        - Health
+      summary: Application health
+      operationId: health
+      security: [ ]
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Application is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+
+components:
+
+  # ============================================================
+  # Security
+  # ============================================================
+
+  securitySchemes:
+
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT
+
+  # ============================================================
+  # Parameters
+  # ============================================================
+
+  parameters:
+
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    InvitationToken:
+      name: token
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 32
+
+    Page:
+      name: page
+      in: query
+      description: Zero-based page number
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    Size:
+      name: size
+      in: query
+      description: Number of elements per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  # ============================================================
+  # Schemas
+  # ============================================================
+
+  schemas:
+
+    # ----------------------------------------------------------
+    # Authentication
+    # ----------------------------------------------------------
+
+    LoginRequest:
+      type: object
+      required:
+        - nickname
+        - password
+      properties:
+        nickname:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 256
+
+    RegisterUserRequest:
+      type: object
+      required:
+        - nickname
+        - password
+      properties:
+        nickname:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 256
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - user
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived access JWT
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+
+    TokenResponse:
+      type: object
+      required:
+        - accessToken
+      properties:
+        accessToken:
+          type: string
+          description: New short-lived access JWT
+
+    CurrentUser:
+      type: object
+      required:
+        - id
+        - nickname
+        - role
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    # ----------------------------------------------------------
+    # Invitations
+    # ----------------------------------------------------------
+
+    CreateInvitationRequest:
+      type: object
+      required:
+        - internalName
+      properties:
+        internalName:
+          type: string
+          description: Internal administrator-only user name
+          minLength: 1
+          maxLength: 100
+
+    InvitationResponse:
+      type: object
+      required:
+        - id
+        - internalName
+        - invitationUrl
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        internalName:
+          type: string
+        invitationUrl:
+          type: string
+          format: uri
+          description: Secret invitation URL
+        createdAt:
+          type: string
+          format: date-time
+
+    InvitationValidationResponse:
+      type: object
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+        internalName:
+          type: string
+          description: Optional information shown during registration
+
+    # ----------------------------------------------------------
+    # Users
+    # ----------------------------------------------------------
+
+    UserRole:
+      type: string
+      enum:
+        - USER
+        - ADMIN
+
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - DISABLED
+
+    UpdateUserStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    AdminUser:
+      type: object
+      required:
+        - id
+        - internalName
+        - nickname
+        - role
+        - status
+        - deviceCount
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        internalName:
+          type: string
+        nickname:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        deviceCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminUserDetails:
+      allOf:
+        - $ref: '#/components/schemas/AdminUser'
+        - type: object
+          properties:
+            lastActivityAt:
+              type:
+                - string
+                - 'null'
+              format: date-time
+            devices:
+              type: array
+              items:
+                $ref: '#/components/schemas/Device'
+
+    # ----------------------------------------------------------
+    # Devices
+    # ----------------------------------------------------------
+
+    CreateDeviceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: MacBook Pro
+
+    DeviceStatus:
+      type: string
+      enum:
+        - ONLINE
+        - OFFLINE
+        - UNKNOWN
+
+    Device:
+      type: object
+      required:
+        - id
+        - name
+        - vpnIp
+        - publicKey
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        vpnIp:
+          type: string
+          example: 10.8.0.2
+        publicKey:
+          type: string
+          description: Client public key
+        status:
+          $ref: '#/components/schemas/DeviceStatus'
+        lastHandshakeAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        rxBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        txBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminDeviceDetails:
+      allOf:
+        - $ref: '#/components/schemas/Device'
+        - type: object
+          required:
+            - owner
+          properties:
+            owner:
+              $ref: '#/components/schemas/AdminUser'
+
+    # ----------------------------------------------------------
+    # Configuration
+    # ----------------------------------------------------------
+
+    ConfigFormat:
+      type: string
+      enum:
+        - TEXT
+        - JSON
+
+    CreateConfigLinkRequest:
+      type: object
+      properties:
+        expiresIn:
+          type: integer
+          description: Link lifetime in seconds
+          minimum: 60
+          maximum: 86400
+          default: 3600
+
+    ConfigLinkResponse:
+      type: object
+      required:
+        - url
+        - expiresAt
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Secret configuration import URL
+        expiresAt:
+          type: string
+          format: date-time
+
+    # ----------------------------------------------------------
+    # VPN
+    # ----------------------------------------------------------
+
+    VpnState:
+      type: object
+      required:
+        - serverUp
+        - peersTotal
+        - peersActive
+      properties:
+        serverUp:
+          type: boolean
+        peersTotal:
+          type: integer
+          minimum: 0
+        peersActive:
+          type: integer
+          minimum: 0
+        checkedAt:
+          type: string
+          format: date-time
+
+    # ----------------------------------------------------------
+    # Dashboard
+    # ----------------------------------------------------------
+
+    DashboardResponse:
+      type: object
+      required:
+        - usersTotal
+        - devicesTotal
+        - devicesActive
+        - vpn
+      properties:
+        usersTotal:
+          type: integer
+          minimum: 0
+        devicesTotal:
+          type: integer
+          minimum: 0
+        devicesActive:
+          type: integer
+          minimum: 0
+        vpn:
+          $ref: '#/components/schemas/VpnState'
+        infrastructure:
+          $ref: '#/components/schemas/InfrastructureStatus'
+
+    InfrastructureStatus:
+      type: object
+      required:
+        - application
+        - database
+        - ssh
+        - vpn
+      properties:
+        application:
+          $ref: '#/components/schemas/ComponentStatus'
+        database:
+          $ref: '#/components/schemas/ComponentStatus'
+        ssh:
+          $ref: '#/components/schemas/ComponentStatus'
+        vpn:
+          $ref: '#/components/schemas/ComponentStatus'
+
+    ComponentStatus:
+      type: string
+      enum:
+        - UP
+        - DOWN
+        - UNKNOWN
+
+    # ----------------------------------------------------------
+    # Audit
+    # ----------------------------------------------------------
+
+    AuditEventType:
+      type: string
+      enum:
+        - USER_LOGIN
+        - USER_LOGOUT
+        - INVITATION_CREATED
+        - INVITATION_USED
+        - DEVICE_CREATED
+        - DEVICE_CONFIG_VIEWED
+        - DEVICE_CONFIG_DOWNLOADED
+        - DEVICE_DELETED
+        - USER_CREATED
+        - USER_DISABLED
+        - USER_DELETED
+        - ADMIN_LOGIN
+
+    AuditResult:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILURE
+
+    AuditEvent:
+      type: object
+      required:
+        - id
+        - timestamp
+        - eventType
+        - result
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        eventType:
+          $ref: '#/components/schemas/AuditEventType'
+        result:
+          $ref: '#/components/schemas/AuditResult'
+        actor:
+          $ref: '#/components/schemas/AuditActor'
+        object:
+          $ref: '#/components/schemas/AuditObject'
+        correlationId:
+          type: string
+
+    AuditActor:
+      type: object
+      properties:
+        userId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        nickname:
+          type:
+            - string
+            - 'null'
+
+    AuditObject:
+      type: object
+      properties:
+        type:
+          type:
+            - string
+            - 'null'
+        id:
+          type:
+            - string
+            - 'null'
+
+    # ----------------------------------------------------------
+    # Pagination
+    # ----------------------------------------------------------
+
+    UserPage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    DevicePage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    AdminDevicePage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminDeviceDetails'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    AuditPage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ----------------------------------------------------------
+    # Errors
+    # ----------------------------------------------------------
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+        - correlationId
+      properties:
+        code:
+          type: string
+          example: DEVICE_NOT_FOUND
+        message:
+          type: string
+          example: Device not found
+        timestamp:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    # ----------------------------------------------------------
+    # Health
+    # ----------------------------------------------------------
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - UP
+            - DOWN
+            - UNKNOWN
+        components:
+          type: object
+          additionalProperties:
+            type: object
+
+  # ============================================================
+  # Responses
+  # ============================================================
+
+  responses:
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -1,0 +1,76 @@
+panel:
+  api:
+    datasource:
+      postgres:
+        type: com.zaxxer.hikari.HikariDataSource
+        url: ${POSTGRES_URL}
+        username: ${POSTGRES_USERNAME}
+        password: ${POSTGRES_PASSWORD}
+        hikari:
+          pool-name: HikariPool-Postgres
+          maximum-pool-size: 5
+          maxLifetime: 300000
+          connection-timeout: 15000
+
+spring:
+  liquibase:
+    enabled: false
+  cloud:
+    vault:
+      enabled: false
+  application:
+    name: control-panel-api
+  main:
+    banner-mode: off
+
+logging:
+  config: classpath:logback.xml
+
+server:
+  jetty:
+    threads:
+      min: 1
+      max: 3
+    connection-limiter:
+      enabled: false
+      max-connections: 1
+
+management:
+  health:
+    vault:
+      enabled: false
+  metrics:
+    tags:
+      application: control-panel
+    distribution:
+      slo.http.server.requests: 5ms,10ms,25ms,50ms,75ms,100ms,500ms,1000ms,5000ms
+      percentiles.http.server.requests: 0.95, 0.99
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, info, loggers, cache
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  server:
+    port: 8081
+    jetty:
+      threads:
+        min: 1
+        max: 3
+
+logbook:
+  filter:
+    enabled: true
+  format:
+    style: json
+
+auth:
+  permitted-paths:
+    - /actuator/**
+    - /swagger-ui/**
+    - /swagger-ui.html
+    - /v3/api-docs/**
+    - /webjars/**

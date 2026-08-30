@@ -1,0 +1,84 @@
+[versions]
+# Spring
+spring-boot = "4.1.0"
+spring-cloud = "5.0.3"
+dependency-management = "1.1.0"
+
+# Database
+postgres = "42.7.8"
+liquibase = "4.25.1"
+hikaricp = "6.3.3"
+
+# Lombok && MapStruct
+mapstruct = "1.6.3"
+lombok = "1.18.42"
+
+# Commons
+commons-collections = "4.5.0"
+commons-io = "2.20.0"
+logbook = "3.12.3"
+logstash-logback-encoder = "8.1"
+
+# Monitoring & Metrics
+micrometer = "1.17.0-RC1"
+
+# Jackson
+jackson = "2.21.4"
+
+# Swagger
+swagger-annotations = "2.2.52"
+openapi-generator-plugin = "7.23.0"
+
+# Test
+junit-bom = "6.1.0"
+instancio = "5.5.1"
+org-mockito-mockito-core = "5.17.0"
+
+[libraries]
+# Spring Boot
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-jetty = { module = "org.springframework.boot:spring-boot-starter-jetty", version.ref = "spring-boot" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
+spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc", version.ref = "spring-boot" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+
+# Spring Cloud
+spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign", version.ref = "spring-cloud" }
+
+# Logging & Monitoring
+logbook-spring-boot-starter = { module = "org.zalando:logbook-spring-boot-starter", version.ref = "logbook" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback-encoder" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+
+# Lombok & MapStruct
+org-mapstruct-mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
+org-mapstruct-mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
+org-projectlombok-lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+
+# Databases
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+liquibase-core = { module = "org.liquibase:liquibase-core", version.ref = "liquibase" }
+
+# Commons
+commons-collections4 = { module = "org.apache.commons:commons-collections4", version.ref = "commons-collections" }
+commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
+
+# Jackson
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+
+# Swagger
+swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations", version.ref = "swagger-annotations" }
+
+# Test
+org-mockito-mockito-core = { module = "org.mockito:mockito-core", version.ref = "org-mockito-mockito-core" }
+instancio-junit = { module = "org.instancio:instancio-junit", version.ref = "instancio" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-bom" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
+openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator-plugin" }
