@@ -47,6 +47,7 @@ dependencies {
     // Database
     implementation(libs.sqlite.jdbc)
     implementation(libs.hikaricp)
+    implementation(libs.liquibase.core)
 
     // Commons
     implementation(libs.commons.collections4)
@@ -131,8 +132,27 @@ tasks {
             }
         }
 
+        register<Test>("componentTest") {
+            group = "verification"
+            testClassesDirs = tasks.test.get().testClassesDirs
+            classpath = tasks.test.get().classpath
+
+            useJUnitPlatform()
+            outputs.upToDateWhen { false }
+            jvmArgs.add("-javaagent:${mockitoAgent.asPath}")
+
+            filter {
+                includeTestsMatching("org.example.amnezia.controlpanel.api.component.**")
+            }
+
+            extensions.configure<JacocoTaskExtension> {
+                isEnabled = true
+                includes = listOf("org.example.amnezia.controlpanel.api.**")
+            }
+        }
+
         named<Test>("test") {
-            dependsOn("unitTest")
+            dependsOn("unitTest", "componentTest")
             onlyIf { false }
         }
     }

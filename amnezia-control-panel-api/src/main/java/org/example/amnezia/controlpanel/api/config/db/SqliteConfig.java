@@ -1,6 +1,8 @@
 package org.example.amnezia.controlpanel.api.config.db;
 
+import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
@@ -44,4 +46,13 @@ public class SqliteConfig {
         return new DataSourceTransactionManager(dataSource);
     }
 
+    @Bean(DatabaseBeans.SQLITE_LIQUIBASE_BEAN)
+    public SpringLiquibase liquibase(
+            @Qualifier(DatabaseBeans.SQLITE_DATASOURCE_BEAN) DataSource dataSource,
+            @Value("${spring.liquibase.change-log}") String changeLog) {
+        SpringLiquibase liquibase = new SpringLiquibase();
+        liquibase.setDataSource(dataSource);
+        liquibase.setChangeLog(changeLog);
+        return liquibase;
+    }
 }
