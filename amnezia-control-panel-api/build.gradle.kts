@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.openapi.generator)
+    jacoco
     java
 }
 
@@ -44,7 +45,7 @@ dependencies {
     implementation(libs.logstash.logback.encoder)
 
     // Database
-    implementation(libs.postgresql)
+    implementation(libs.sqlite.jdbc)
     implementation(libs.hikaricp)
 
     // Commons
@@ -109,5 +110,30 @@ tasks {
 
     compileJava {
         dependsOn(openApiGenerate)
+    }
+
+    afterEvaluate {
+        register<Test>("unitTest") {
+            group = "verification"
+            testClassesDirs = tasks.test.get().testClassesDirs
+            classpath = tasks.test.get().classpath
+
+            useJUnitPlatform()
+            jvmArgs.add("-javaagent:${mockitoAgent.asPath}")
+
+            filter {
+                excludeTestsMatching("org.example.amnezia.controlpanel.api.component.**")
+            }
+
+            extensions.configure<JacocoTaskExtension> {
+                isEnabled = true
+                includes = listOf("org.example.amnezia.controlpanel.api.**")
+            }
+        }
+
+        named<Test>("test") {
+            dependsOn("unitTest")
+            onlyIf { false }
+        }
     }
 }

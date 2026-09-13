@@ -5,7 +5,7 @@ spring-cloud = "5.0.3"
 dependency-management = "1.1.0"
 
 # Database
-postgres = "42.7.8"
+sqlite = "3.45.1.0"
 liquibase = "4.25.1"
 hikaricp = "6.3.3"
 
@@ -59,7 +59,7 @@ org-mapstruct-mapstruct-processor = { module = "org.mapstruct:mapstruct-processo
 org-projectlombok-lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 
 # Databases
-postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 liquibase-core = { module = "org.liquibase:liquibase-core", version.ref = "liquibase" }
 

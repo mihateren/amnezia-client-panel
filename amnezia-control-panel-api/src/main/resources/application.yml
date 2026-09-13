@@ -1,14 +1,13 @@
 panel:
   api:
     datasource:
-      postgres:
+      sqlite:
         type: com.zaxxer.hikari.HikariDataSource
-        url: ${POSTGRES_URL}
-        username: ${POSTGRES_USERNAME}
-        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.sqlite.JDBC
+        url: ${SQLITE_URL}
         hikari:
-          pool-name: HikariPool-Postgres
-          maximum-pool-size: 5
+          pool-name: HikariPool-Sqlite
+          maximum-pool-size: 1
           maxLifetime: 300000
           connection-timeout: 15000
 
@@ -29,8 +28,8 @@ logging:
 server:
   jetty:
     threads:
-      min: 1
-      max: 3
+      min: 8
+      max: 200
     connection-limiter:
       enabled: false
       max-connections: 1
@@ -58,8 +57,8 @@ management:
     port: 8081
     jetty:
       threads:
-        min: 1
-        max: 3
+        min: 8
+        max: 200
 
 logbook:
   filter:
