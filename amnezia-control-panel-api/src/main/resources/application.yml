@@ -13,7 +13,8 @@ panel:
 
 spring:
   liquibase:
-    enabled: false
+    url: ${SQLITE_URL}
+    change-log: classpath:/db-migrations/changelog.xml
   cloud:
     vault:
       enabled: false
