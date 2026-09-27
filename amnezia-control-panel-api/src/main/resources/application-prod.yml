@@ -1,0 +1,12 @@
+spring:
+  main:
+    keep-alive: true
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+logging:
+  structured:
+    format:
+      console: ecs
+

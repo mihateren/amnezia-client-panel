@@ -19,3 +19,12 @@ build/
 *.sqlite
 *.sqlite3
 local/panel.db
+*.db-*
+*.sqlite-*
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+local/*.env

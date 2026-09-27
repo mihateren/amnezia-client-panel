@@ -1,51 +1,84 @@
 package org.example.amnezia.controlpanel.api.web;
 
-import lombok.extern.slf4j.Slf4j;
-import org.example.amnezia.controlpanel.api.constants.Message;
-import org.example.amnezia.controlpanel.api.dto.Result;
-import org.example.amnezia.controlpanel.api.exception.AppLogicException;
-import org.springframework.http.HttpStatus;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.example.amnezia.controlpanel.api.exception.ApiException;
+import org.example.amnezia.controlpanel.api.rest.model.ErrorResponse;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.ObjectError;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.stream.Collectors;
-
-@Slf4j
 @RestControllerAdvice
 public class WebExceptionHandler {
+  private final MeterRegistry metrics;
+  private final Errors errors;
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result<Void> errors(MethodArgumentNotValidException e) {
-        log.warn("Validation error: {}", e.getMessage(), e);
-        String validationErrors = e.getBindingResult().getAllErrors().stream()
-                .map(ObjectError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
-        return Result.emptyResult(Message.VALIDATION_ERROR.getCode(), validationErrors);
-    }
+  public WebExceptionHandler(MeterRegistry metrics, Errors errors) {
+    this.metrics = metrics;
+    this.errors = errors;
+  }
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result<Void> errors(HttpMessageNotReadableException e) {
-        log.warn("Invalid json: {}", e.getMessage(), e);
-        return Result.errorResult(Message.INVALID_JSON);
-    }
+  @ExceptionHandler(ApiException.class)
+  ResponseEntity<ErrorResponse> application(ApiException e) {
+    return response(e.status().value(), e.code(), e.getMessage());
+  }
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.OK)
-    public Result<Void> errors(AppLogicException e) {
-        log.warn("Application logic error: code = {}, message = {}", e.getCode(), e.getMessage(), e);
-        return Result.emptyResult(e.getCode(), e.getMessage());
-    }
+  @ExceptionHandler({
+    MethodArgumentNotValidException.class,
+    HandlerMethodValidationException.class,
+    MethodArgumentTypeMismatchException.class,
+    MissingServletRequestParameterException.class,
+    HttpMessageNotReadableException.class,
+    jakarta.validation.ConstraintViolationException.class
+  })
+  ResponseEntity<?> validation(Exception e) {
+    return response(400, "VALIDATION_ERROR", "Invalid request");
+  }
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Result<Void> errors(Exception e) {
-        log.error("Internal error", e);
-        return Result.errorResult(Message.INTERNAL_ERROR);
-    }
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  ResponseEntity<?> conflict(Exception e) {
+    return response(409, "CONFLICT", "Resource conflict");
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  ResponseEntity<?> forbidden(Exception e) {
+    return response(403, "FORBIDDEN", "Access denied");
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  ResponseEntity<?> missing(Exception e) {
+    return response(404, "NOT_FOUND", "Resource not found");
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  ResponseEntity<?> method(Exception e) {
+    return response(405, "METHOD_NOT_ALLOWED", "Method not allowed");
+  }
+
+  @ExceptionHandler(Exception.class)
+  ResponseEntity<?> failure(Exception e) {
+    if (e instanceof DataAccessException) metrics.counter("db_errors").increment();
+    LoggerFactory.getLogger(getClass())
+        .error("Request failed: type={}", e.getClass().getSimpleName());
+    return response(500, "INTERNAL_ERROR", "Internal error");
+  }
+
+  @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+  ResponseEntity<ErrorResponse> mediaType(Exception e) {
+    return response(415, "UNSUPPORTED_MEDIA_TYPE", "Unsupported content type");
+  }
+
+  private ResponseEntity<ErrorResponse> response(int status, String code, String message) {
+    return ResponseEntity.status(status).body(errors.body(code, message));
+  }
 }

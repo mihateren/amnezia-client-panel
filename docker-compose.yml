@@ -1,0 +1,86 @@
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: ${PANEL_ENV_FILE:-.env}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN}
+      SQLITE_URL: jdbc:sqlite:/data/panel.db
+      SSH_PRIVATE_KEY: /run/secrets/ssh_key
+      SSH_KNOWN_HOSTS: /run/secrets/known_hosts
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - panel-data:/data
+    secrets:
+      - ssh_key
+      - known_hosts
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700,exec
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health/liveness"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    stop_grace_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v3.13.3
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/etc/prometheus/start.sh"]
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN}
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/start.sh:/etc/prometheus/start.sh:ro
+      - prometheus-data:/prometheus
+    tmpfs:
+      - /tmp:uid=65534,gid=65534,mode=0700
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on: [prometheus]
+
+volumes:
+  panel-data:
+  prometheus-data:
+  grafana-data:
+
+secrets:
+  ssh_key:
+    file: ${SSH_KEY_FILE:?Set SSH_KEY_FILE}
+  known_hosts:
+    file: ${SSH_KNOWN_HOSTS_FILE:?Set SSH_KNOWN_HOSTS_FILE}
+

@@ -1,0 +1,7 @@
+spring:
+  main:
+    keep-alive: true
+logging:
+  level:
+    org.example.amnezia.controlpanel: INFO
+

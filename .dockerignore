@@ -1,0 +1,16 @@
+.git
+.gradle
+.idea
+**/build
+.env
+.env.*
+!.env.example
+local
+agent-skills
+*.db
+*.db-*
+*.sqlite*
+**/*.key
+**/*.pem
+secrets
+

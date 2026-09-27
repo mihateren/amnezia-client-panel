@@ -732,6 +732,24 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
 
 
+  /actuator/prometheus:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics (ADMIN only)
+      operationId: prometheus
+      responses:
+        '200':
+          description: Prometheus exposition including HTTP, JVM and VPN metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
 
   # ============================================================
@@ -941,6 +959,7 @@ components:
 
     UpdateUserStatusRequest:
       type: object
+      description: Disabling removes managed devices and VPN peers and revokes refresh sessions. Re-enabling does not restore devices. ADMIN accounts are protected from disable/delete.
       required:
         - status
       properties:
@@ -1085,6 +1104,7 @@ components:
 
     ConfigLinkResponse:
       type: object
+      description: Single-use link, consumed after successful configuration generation. A lost HTTP response does not restore the link.
       required:
         - url
         - expiresAt
