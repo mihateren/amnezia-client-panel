@@ -1,0 +1,1 @@
+UPDATE users SET role='INVALID' WHERE id=:id

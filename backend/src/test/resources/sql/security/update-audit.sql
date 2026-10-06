@@ -1,0 +1,1 @@
+UPDATE audit_log SET result='FAILURE' WHERE id=:id

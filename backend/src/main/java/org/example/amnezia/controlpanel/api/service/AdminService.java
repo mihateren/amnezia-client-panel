@@ -6,6 +6,7 @@ import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.Result.SUCCESS;
 
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -179,9 +180,14 @@ public class AdminService {
     PageResponse.validate(page, size);
     var runtime = deviceService.runtimeOrUnknown();
     var candidates = userId == null ? devices.all() : devices.byUser(userId);
+    var owners = new HashMap<UUID, AdminUser>();
     var matched =
         candidates.stream()
-            .map(d -> new AdminDevice(deviceService.response(d, runtime), view(user(d.userId()))))
+            .map(
+                d ->
+                    new AdminDevice(
+                        deviceService.response(d, runtime),
+                        owners.computeIfAbsent(d.userId(), id -> view(user(id)))))
             .filter(d -> status == null || d.device().status() == status)
             .toList();
     return PageResponse.slice(matched, page, size);

@@ -1,0 +1,1 @@
+SELECT token_hash FROM invitations WHERE id=:id

@@ -17,6 +17,7 @@ import org.example.amnezia.controlpanel.api.persistence.repository.UserRepositor
 import org.example.amnezia.controlpanel.api.security.Secrets;
 import org.example.amnezia.controlpanel.api.service.AuthService;
 import org.example.amnezia.controlpanel.api.service.InvitationService;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -103,13 +104,36 @@ class RepositoryTest extends BaseComponentTest {
   }
 
   @Test
+  void shouldSearchLiteralWildcardsAndPreserveNullableActivity() {
+    var prefix = "literal-" + UUID.randomUUID();
+    var percent = user(prefix + "%value");
+    var underscore = user(prefix + "_value");
+    var backslash = user(prefix + "\\value");
+    users.insert(percent);
+    users.insert(underscore);
+    users.insert(backslash);
+    users.insert(user(prefix + "Xvalue"));
+    assertThat(users.list(null, prefix + "%", 10, 0)).containsExactly(percent);
+    assertThat(users.count(null, prefix + "%")).isEqualTo(1);
+    assertThat(users.list(null, prefix + "_", 10, 0)).containsExactly(underscore);
+    assertThat(users.list(null, prefix + "\\", 10, 0)).containsExactly(backslash);
+    assertThat(users.find(percent.id()).orElseThrow().lastActivityAt()).isNull();
+    var activity = Instant.parse("2026-01-02T03:04:05.123456789Z");
+    users.activity(percent.id(), activity);
+    assertThat(users.find(percent.id()).orElseThrow().lastActivityAt()).isEqualTo(activity);
+    users.status(percent.id(), User.Status.DISABLED, activity);
+    assertThat(users.list(User.Status.ACTIVE, prefix + "%", 10, 0)).isEmpty();
+    assertThat(users.count(User.Status.DISABLED, prefix + "%")).isEqualTo(1);
+  }
+
+  @Test
   void shouldRejectInvalidEnumsAndHaveNoForeignKeys() {
     var sample = user("constraints-" + UUID.randomUUID());
     users.insert(sample);
     assertThatThrownBy(
             () ->
                 jdbc.update(
-                    "UPDATE users SET role='INVALID' WHERE id=:id",
+                    TestQuery.INVALID_USER_ROLE.query(),
                     new MapSqlParameterSource("id", sample.id().toString())))
         .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     for (var table :
@@ -117,7 +141,7 @@ class RepositoryTest extends BaseComponentTest {
             "users", "invitations", "devices", "config_links", "audit_log", "refresh_sessions")) {
       assertThat(
               jdbc.queryForList(
-                  "PRAGMA foreign_key_list(" + table + ")", new MapSqlParameterSource()))
+                  TestQuery.FOREIGN_KEYS.query(), new MapSqlParameterSource("table", table)))
           .isEmpty();
     }
   }
@@ -126,17 +150,15 @@ class RepositoryTest extends BaseComponentTest {
   void shouldApplyMigrationsAgainWithoutChangingSchema() throws Exception {
     var before =
         jdbc.queryForObject(
-            "SELECT COUNT(*) FROM DATABASECHANGELOG", new MapSqlParameterSource(), Long.class);
+            TestQuery.CHANGELOG_COUNT.query(), new MapSqlParameterSource(), Long.class);
     liquibase.afterPropertiesSet();
     assertThat(
             jdbc.queryForObject(
-                "SELECT COUNT(*) FROM DATABASECHANGELOG", new MapSqlParameterSource(), Long.class))
+                TestQuery.CHANGELOG_COUNT.query(), new MapSqlParameterSource(), Long.class))
         .isEqualTo(before);
     assertThat(
             jdbc.queryForList(
-                "SELECT name FROM sqlite_master WHERE type='table'",
-                new MapSqlParameterSource(),
-                String.class))
+                TestQuery.TABLE_NAMES.query(), new MapSqlParameterSource(), String.class))
         .contains("refresh_sessions");
   }
 
@@ -193,7 +215,7 @@ class RepositoryTest extends BaseComponentTest {
     assertThat(registered.response().user().role()).isEqualTo(User.Role.USER);
     assertThat(
             jdbc.queryForObject(
-                "SELECT COUNT(*) FROM refresh_sessions WHERE token_hash=:tokenHash",
+                TestQuery.RAW_REFRESH_TOKEN_COUNT.query(),
                 new MapSqlParameterSource("tokenHash", registered.refreshToken()),
                 Long.class))
         .isZero();

@@ -50,12 +50,27 @@ dependencies {
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(enforcedPlatform("org.junit:junit-bom:5.13.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.testcontainers:testcontainers")
 }
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
 tasks.bootJar { archiveFileName.set("amnezia-control-panel.jar") }
 tasks.jar { enabled = false }
-tasks.test { useJUnitPlatform(); jvmArgs("--enable-native-access=ALL-UNNAMED") }
+tasks.test {
+    useJUnitPlatform { excludeTags("testcontainers") }
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+tasks.register<Test>("testcontainersTest") {
+    group = "verification"
+    description = "Run the SQLite component/query suite inside Linux Java 25; requires Docker"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("testcontainers") }
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    systemProperty("panel.container.classpath", sourceSets.test.get().runtimeClasspath.asPath)
+    systemProperty("panel.container.openapi", layout.projectDirectory.dir("docs-java/openapi").asFile.absolutePath)
+    shouldRunAfter(tasks.test)
+}
 tasks.jacocoTestReport { dependsOn(tasks.test); reports { html.required.set(true); xml.required.set(true) } }
 tasks.register<JavaExec>("formatJava") {
     group = "formatting"

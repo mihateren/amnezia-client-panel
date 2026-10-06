@@ -38,12 +38,25 @@ Linux/macOS: use `./gradlew` instead of `./gradlew.bat`.
 ./gradlew.bat clean test
 ./gradlew.bat clean build
 ./gradlew.bat check
+./gradlew.bat testcontainersTest
 ```
 
 Tests generate their own secrets, use a temporary real SQLite database, execute
 Liquibase, start real HTTP endpoints, and replace only the VDS gateway with a test fake.
 No production VDS or Docker daemon is required for the main suite.
 Report: `build/reports/tests/test/index.html`.
+
+`testcontainersTest` requires Docker and runs the retained component/query suite
+inside a disposable `eclipse-temurin:25-jre` Linux container. It uses the same
+SQLite JDBC driver, real temporary database files, Liquibase migrations and
+classpath SQL resources as the host suite. Docker failures fail this task;
+container tests are not silently skipped. No production VPS is contacted.
+Report: `build/reports/tests/testcontainersTest/index.html`.
+
+The audit and verification record is in
+[refactoring-report.md](docs-java/refactoring-report.md); the protected VPN/database
+monitoring baseline is in
+[refactoring-observability.md](docs-java/refactoring-observability.md).
 
 ## Docker
 

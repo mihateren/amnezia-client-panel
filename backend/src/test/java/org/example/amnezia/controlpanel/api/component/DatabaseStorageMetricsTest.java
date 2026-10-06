@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.example.amnezia.controlpanel.api.config.db.DatabasePins;
 import org.example.amnezia.controlpanel.api.monitoring.DatabaseStorageMetrics;
 import org.example.amnezia.controlpanel.api.persistence.repository.DatabaseMetricRepository;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,18 +34,17 @@ class DatabaseStorageMetricsTest extends BaseComponentTest {
   @Test
   void shouldMeasureRealSqliteTableGrowthIncludeIndexesAndRemoveDroppedTables() {
     var parameters = new MapSqlParameterSource();
-    jdbc.update(
-        "CREATE TABLE metric_size_sample (id INTEGER PRIMARY KEY, payload BLOB)", parameters);
+    jdbc.update(TestQuery.CREATE_METRIC_SAMPLE.query(), parameters);
     try {
       var empty = tableBytes();
       for (int i = 0; i < 20; i++) {
         jdbc.update(
-            "INSERT INTO metric_size_sample(payload) VALUES (:payload)",
+            TestQuery.INSERT_METRIC_SAMPLE.query(),
             new MapSqlParameterSource("payload", new byte[4096]));
       }
       var populated = tableBytes();
       assertThat(populated).isGreaterThan(empty);
-      jdbc.update("CREATE INDEX metric_size_sample_idx ON metric_size_sample(payload)", parameters);
+      jdbc.update(TestQuery.INDEX_METRIC_SAMPLE.query(), parameters);
       assertThat(tableBytes()).isGreaterThan(populated);
       monitor.refresh();
       assertThat(
@@ -65,7 +65,7 @@ class DatabaseStorageMetricsTest extends BaseComponentTest {
       assertThat(metrics.get("sqlite_database_allocated_bytes").gauge().value())
           .isGreaterThanOrEqualTo(tableBytes());
     } finally {
-      jdbc.update("DROP TABLE metric_size_sample", parameters);
+      jdbc.update(TestQuery.DROP_METRIC_SAMPLE.query(), parameters);
       monitor.refresh();
     }
     assertThat(

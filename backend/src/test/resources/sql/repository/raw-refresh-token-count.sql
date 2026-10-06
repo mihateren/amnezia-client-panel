@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM refresh_sessions WHERE token_hash=:tokenHash

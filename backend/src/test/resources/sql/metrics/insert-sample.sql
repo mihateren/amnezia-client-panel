@@ -1,0 +1,1 @@
+INSERT INTO metric_size_sample(payload) VALUES (:payload)

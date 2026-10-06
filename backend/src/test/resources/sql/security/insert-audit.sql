@@ -1,0 +1,1 @@
+INSERT INTO audit_log(id,event_type,result,created_at) VALUES(:id,'USER_LOGIN','SUCCESS',:createdAt)

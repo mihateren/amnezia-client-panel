@@ -1,0 +1,1 @@
+CREATE INDEX metric_size_sample_idx ON metric_size_sample(payload)

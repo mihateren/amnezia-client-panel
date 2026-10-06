@@ -1,0 +1,1 @@
+UPDATE users SET internal_name=:name WHERE id=:id

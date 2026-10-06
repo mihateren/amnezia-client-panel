@@ -3,6 +3,7 @@ package org.example.amnezia.controlpanel.api.component;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -24,9 +25,7 @@ class AppStartupWithMigrationsComponentTest extends BaseComponentTest {
   void applicationStartsWithSchemaApplied() {
     List<String> tables =
         jdbcTemplate.queryForList(
-            "select name from sqlite_master where type = 'table'",
-            new MapSqlParameterSource(),
-            String.class);
+            TestQuery.STARTUP_TABLE_NAMES.query(), new MapSqlParameterSource(), String.class);
 
     assertThat(tables)
         .contains(
@@ -43,7 +42,7 @@ class AppStartupWithMigrationsComponentTest extends BaseComponentTest {
   void initialChangesetIsRecordedInDatabaseChangelog() {
     List<String> changesetIds =
         jdbcTemplate.queryForList(
-            "select id from DATABASECHANGELOG", new MapSqlParameterSource(), String.class);
+            TestQuery.CHANGELOG_IDS.query(), new MapSqlParameterSource(), String.class);
 
     assertThat(changesetIds).contains("001-initial-schema");
   }

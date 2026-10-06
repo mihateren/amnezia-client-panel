@@ -1,6 +1,8 @@
 package org.example.amnezia.controlpanel.api.service;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.AuditActor;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.AuditObject;
@@ -38,6 +40,7 @@ public class AuditQueryService {
     PageResponse.validate(page, size);
     if (from != null && to != null && from.isAfter(to)) throw ApiException.invalid();
     var items = audits.list(page, size, type, userId, result, from, to);
+    var actors = new HashMap<UUID, Optional<String>>();
     return PageResponse.of(
         items.content().stream()
             .map(
@@ -51,7 +54,10 @@ public class AuditQueryService {
                             e.actorUserId(),
                             e.actorUserId() == null
                                 ? null
-                                : users.find(e.actorUserId()).map(User::nickname).orElse(null)),
+                                : actors
+                                    .computeIfAbsent(
+                                        e.actorUserId(), id -> users.find(id).map(User::nickname))
+                                    .orElse(null)),
                         new AuditObject(e.objectType(), e.objectId()),
                         e.correlationId()))
             .toList(),

@@ -1,0 +1,1 @@
+UPDATE refresh_sessions SET expires_at=:expiresAt WHERE token_hash=:tokenHash

@@ -12,6 +12,7 @@ import org.example.amnezia.controlpanel.api.security.JwtService;
 import org.example.amnezia.controlpanel.api.security.Secrets;
 import org.example.amnezia.controlpanel.api.service.AuthService;
 import org.example.amnezia.controlpanel.api.service.InvitationService;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -97,7 +98,7 @@ class SecurityFoundationTest extends BaseComponentTest {
     assertThat(passwords.matches(credentials.password(), user.passwordHash())).isTrue();
     assertThat(
             jdbc.queryForObject(
-                "SELECT token_hash FROM invitations WHERE id=:id",
+                TestQuery.INVITATION_TOKEN_HASH.query(),
                 new MapSqlParameterSource("id", invitation.id().toString()),
                 String.class))
         .isEqualTo(Secrets.hash(token));
@@ -110,7 +111,7 @@ class SecurityFoundationTest extends BaseComponentTest {
     var login = auth.login(credentials);
     assertThat(login.response().user().id()).isEqualTo(user.id());
     jdbc.update(
-        "UPDATE refresh_sessions SET expires_at=:expiresAt WHERE token_hash=:tokenHash",
+        TestQuery.EXPIRE_REFRESH_SESSION.query(),
         new MapSqlParameterSource("expiresAt", Instant.EPOCH.toString())
             .addValue("tokenHash", Secrets.hash(login.refreshToken())));
     assertThatThrownBy(() -> auth.refresh(login.refreshToken()))
@@ -123,19 +124,13 @@ class SecurityFoundationTest extends BaseComponentTest {
   void shouldMakeAuditAppendOnly() {
     var id = UUID.randomUUID().toString();
     jdbc.update(
-        "INSERT INTO audit_log(id,event_type,result,created_at)"
-            + " VALUES(:id,'USER_LOGIN','SUCCESS',:createdAt)",
+        TestQuery.INSERT_AUDIT.query(),
         new MapSqlParameterSource("id", id).addValue("createdAt", Instant.now().toString()));
     assertThatThrownBy(
-            () ->
-                jdbc.update(
-                    "UPDATE audit_log SET result='FAILURE' WHERE id=:id",
-                    new MapSqlParameterSource("id", id)))
+            () -> jdbc.update(TestQuery.UPDATE_AUDIT.query(), new MapSqlParameterSource("id", id)))
         .isInstanceOf(org.springframework.dao.DataAccessException.class);
     assertThatThrownBy(
-            () ->
-                jdbc.update(
-                    "DELETE FROM audit_log WHERE id=:id", new MapSqlParameterSource("id", id)))
+            () -> jdbc.update(TestQuery.DELETE_AUDIT.query(), new MapSqlParameterSource("id", id)))
         .isInstanceOf(org.springframework.dao.DataAccessException.class);
   }
 }

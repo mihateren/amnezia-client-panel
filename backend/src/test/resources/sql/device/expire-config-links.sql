@@ -1,0 +1,1 @@
+UPDATE config_links SET expires_at=:expiresAt WHERE device_id=:deviceId

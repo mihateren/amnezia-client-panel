@@ -20,6 +20,7 @@ import org.example.amnezia.controlpanel.api.persistence.repository.UserRepositor
 import org.example.amnezia.controlpanel.api.security.JwtService;
 import org.example.amnezia.controlpanel.api.service.AdminService;
 import org.example.amnezia.controlpanel.api.service.DeviceService;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.example.amnezia.controlpanel.api.vpn.FakeVpnGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -143,8 +144,8 @@ class ApiSecurityTest extends BaseComponentTest {
   @BeforeEach
   void setup() {
     vpn.reset();
-    jdbc.update("DELETE FROM config_links", new MapSqlParameterSource());
-    jdbc.update("DELETE FROM devices", new MapSqlParameterSource());
+    jdbc.update(TestQuery.DELETE_CONFIG_LINKS.query(), new MapSqlParameterSource());
+    jdbc.update(TestQuery.DELETE_DEVICES.query(), new MapSqlParameterSource());
     user = insert(User.Role.USER);
     admin = insert(User.Role.ADMIN);
     other = insert(User.Role.USER);

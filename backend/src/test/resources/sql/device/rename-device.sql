@@ -1,0 +1,1 @@
+UPDATE devices SET name=:name WHERE id=:id

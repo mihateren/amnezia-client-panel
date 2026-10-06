@@ -1,0 +1,1 @@
+CREATE TABLE metric_size_sample (id INTEGER PRIMARY KEY, payload BLOB)

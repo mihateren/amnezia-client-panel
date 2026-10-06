@@ -1,0 +1,1 @@
+DROP TABLE metric_size_sample

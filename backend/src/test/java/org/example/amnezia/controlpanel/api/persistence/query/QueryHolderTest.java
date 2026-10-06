@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -84,16 +85,16 @@ class QueryHolderTest {
     assertThatThrownBy(() -> SqlResourceLoader.load("sql/missing-resource.sql"))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("sql/missing-resource.sql");
-    assertThatThrownBy(() -> SqlResourceLoader.load("sql-test/empty.sql"))
+    assertThatThrownBy(() -> SqlResourceLoader.load("sql/parser/empty.sql"))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("sql-test/empty.sql");
+        .hasMessageContaining("sql/parser/empty.sql");
   }
 
   @Test
   void shouldIgnorePlaceholdersInsideSqlStringsAndComments() {
-    assertThat(withoutLiteralsAndComments("SELECT '?' AS literal -- ?\n/* ? */ WHERE id=:id"))
+    assertThat(withoutLiteralsAndComments(TestQuery.QUOTED_PLACEHOLDERS.query()))
         .doesNotContain("?");
-    assertThat(withoutLiteralsAndComments("SELECT * FROM users WHERE id=?")).contains("?");
+    assertThat(withoutLiteralsAndComments(TestQuery.POSITIONAL_PLACEHOLDER.query())).contains("?");
   }
 
   private static String withoutLiteralsAndComments(String sql) {

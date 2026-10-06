@@ -15,6 +15,7 @@ import org.example.amnezia.controlpanel.api.persistence.model.User;
 import org.example.amnezia.controlpanel.api.persistence.repository.DeviceRepository;
 import org.example.amnezia.controlpanel.api.persistence.repository.UserRepository;
 import org.example.amnezia.controlpanel.api.service.DeviceService;
+import org.example.amnezia.controlpanel.api.support.TestQuery;
 import org.example.amnezia.controlpanel.api.vpn.FakeVpnGateway;
 import org.example.amnezia.controlpanel.api.vpn.VpnMonitor;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,8 +64,8 @@ class DeviceLifecycleTest extends BaseComponentTest {
   @BeforeEach
   void setup() {
     vpn.reset();
-    jdbc.update("DELETE FROM config_links", new MapSqlParameterSource());
-    jdbc.update("DELETE FROM devices", new MapSqlParameterSource());
+    jdbc.update(TestQuery.DELETE_CONFIG_LINKS.query(), new MapSqlParameterSource());
+    jdbc.update(TestQuery.DELETE_DEVICES.query(), new MapSqlParameterSource());
     var now = Instant.now();
     user = UUID.randomUUID();
     users.insert(
@@ -101,10 +102,10 @@ class DeviceLifecycleTest extends BaseComponentTest {
     assertThat(meter.getId().getTag("user_name")).isEqualTo("internal-" + user);
     assertThat(meter.getId().getTag("public_key")).isNull();
     jdbc.update(
-        "UPDATE devices SET name=:name WHERE id=:id",
+        TestQuery.RENAME_DEVICE.query(),
         new MapSqlParameterSource("name", "Ноутбук").addValue("id", device.id().toString()));
     jdbc.update(
-        "UPDATE users SET internal_name=:name WHERE id=:id",
+        TestQuery.RENAME_USER.query(),
         new MapSqlParameterSource("name", "Иван").addValue("id", user.toString()));
     monitor.refresh();
     var updated = metrics.get("vpn_peer_rx_bytes").tags(tags).gauge();
@@ -180,7 +181,7 @@ class DeviceLifecycleTest extends BaseComponentTest {
     assertThatThrownBy(() -> configs.importLink(token)).isInstanceOf(RuntimeException.class);
     var expired = configs.link(user, device.id(), 60);
     jdbc.update(
-        "UPDATE config_links SET expires_at=:expiresAt WHERE device_id=:deviceId",
+        TestQuery.EXPIRE_CONFIG_LINKS.query(),
         new MapSqlParameterSource("expiresAt", Instant.EPOCH.toString())
             .addValue("deviceId", device.id().toString()));
     assertThatThrownBy(
