@@ -28,3 +28,16 @@ secrets/
 *.pem
 *.key
 local/*.env
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.pnpm-store/
+local/integration-tools/
+local/*.py
+local/*.log
+local/*.mjs
+
+!backend/gradle/wrapper/gradle-wrapper.jar
+backend/local/

@@ -1,6 +1,6 @@
 # Backend development
 
-Use the local `agent-skills/java-spring-best-practices/SKILL.md` for all subsequent Java/Spring implementation and refactoring, as requested by the user.
+Use the local `backend/agent-skills/java-spring-best-practices/SKILL.md` for all subsequent Java/Spring implementation and refactoring, as requested by the user.
 
 Project requirements take precedence over generic examples in that skill:
 - Java 25, Spring Boot 4.1, SQLite with JDBC and Liquibase; no JPA/Hibernate.

@@ -1,0 +1,86 @@
+package org.example.amnezia.controlpanel.api.component;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import org.example.amnezia.controlpanel.api.config.db.DatabasePins;
+import org.example.amnezia.controlpanel.api.monitoring.DatabaseStorageMetrics;
+import org.example.amnezia.controlpanel.api.persistence.repository.DatabaseMetricRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+class DatabaseStorageMetricsTest extends BaseComponentTest {
+  private final NamedParameterJdbcTemplate jdbc;
+  private final DatabaseMetricRepository repository;
+  private final DatabaseStorageMetrics monitor;
+  private final MeterRegistry metrics;
+
+  @Autowired
+  DatabaseStorageMetricsTest(
+      @Qualifier(DatabasePins.SQLITE_NAMED_JDBC_TEMPLATE_BEAN) NamedParameterJdbcTemplate jdbc,
+      DatabaseMetricRepository repository,
+      DatabaseStorageMetrics monitor,
+      MeterRegistry metrics) {
+    this.jdbc = jdbc;
+    this.repository = repository;
+    this.monitor = monitor;
+    this.metrics = metrics;
+  }
+
+  @Test
+  void shouldMeasureRealSqliteTableGrowthIncludeIndexesAndRemoveDroppedTables() {
+    var parameters = new MapSqlParameterSource();
+    jdbc.update(
+        "CREATE TABLE metric_size_sample (id INTEGER PRIMARY KEY, payload BLOB)", parameters);
+    try {
+      var empty = tableBytes();
+      for (int i = 0; i < 20; i++) {
+        jdbc.update(
+            "INSERT INTO metric_size_sample(payload) VALUES (:payload)",
+            new MapSqlParameterSource("payload", new byte[4096]));
+      }
+      var populated = tableBytes();
+      assertThat(populated).isGreaterThan(empty);
+      jdbc.update("CREATE INDEX metric_size_sample_idx ON metric_size_sample(payload)", parameters);
+      assertThat(tableBytes()).isGreaterThan(populated);
+      monitor.refresh();
+      assertThat(
+              metrics
+                  .get("sqlite_table_allocated_bytes")
+                  .tag("table", "metric_size_sample")
+                  .gauge()
+                  .value())
+          .isEqualTo(tableBytes());
+      assertThat(
+              metrics
+                  .get("sqlite_table_payload_bytes")
+                  .tag("table", "metric_size_sample")
+                  .gauge()
+                  .value())
+          .isPositive()
+          .isLessThan(tableBytes());
+      assertThat(metrics.get("sqlite_database_allocated_bytes").gauge().value())
+          .isGreaterThanOrEqualTo(tableBytes());
+    } finally {
+      jdbc.update("DROP TABLE metric_size_sample", parameters);
+      monitor.refresh();
+    }
+    assertThat(
+            metrics
+                .find("sqlite_table_allocated_bytes")
+                .tag("table", "metric_size_sample")
+                .meters())
+        .isEmpty();
+  }
+
+  private long tableBytes() {
+    return repository.storage().tables().stream()
+        .filter(table -> table.tableName().equals("metric_size_sample"))
+        .findFirst()
+        .orElseThrow()
+        .allocatedBytes();
+  }
+}
