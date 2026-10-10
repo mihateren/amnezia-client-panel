@@ -11,9 +11,11 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import org.example.amnezia.controlpanel.api.audit.AuditService;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.AdminDevice;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.AdminUser;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.Dashboard;
+import org.example.amnezia.controlpanel.api.dto.AdminDtos.DashboardSummary;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.Infrastructure;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.UserDetails;
 import org.example.amnezia.controlpanel.api.dto.AdminDtos.VpnState;
@@ -30,11 +32,13 @@ import org.example.amnezia.controlpanel.api.vpn.AwgConfig;
 import org.example.amnezia.controlpanel.api.vpn.VpnGateway;
 import org.example.amnezia.controlpanel.api.vpn.VpnMonitor;
 import org.example.amnezia.controlpanel.api.vpn.VpnMutation;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class AdminService {
+  private final VpnMigrationService migration;
   private final UserRepository users;
   private final DeviceRepository devices;
   private final RefreshSessionRepository sessions;
@@ -50,6 +54,7 @@ public class AdminService {
   private final Clock clock;
 
   public AdminService(
+      VpnMigrationService migration,
       UserRepository users,
       DeviceRepository devices,
       RefreshSessionRepository sessions,
@@ -61,8 +66,9 @@ public class AdminService {
       VpnMutation mutation,
       VpnMonitor monitor,
       ReentrantLock lock,
-      TransactionTemplate tx,
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       Clock clock) {
+    this.migration = migration;
     this.users = users;
     this.devices = devices;
     this.sessions = sessions;
@@ -164,12 +170,14 @@ public class AdminService {
           }
           audit.record(delete ? USER_DELETED : USER_DISABLED, SUCCESS, actor, "USER", id);
         };
-    if (owned.isEmpty()) tx.executeWithoutResult(s -> persist.run());
+    var current = owned.stream().filter(d -> !migration.outdated(d)).toList();
+    if (current.isEmpty()) tx.executeWithoutResult(s -> persist.run());
     else {
+      migration.requireAvailable();
       var original = vpn.readConfig();
       var replacement =
           AwgConfig.parse(original)
-              .remove(owned.stream().map(Device::publicKey).collect(Collectors.toSet()));
+              .remove(current.stream().map(Device::publicKey).collect(Collectors.toSet()));
       mutation.apply(original, replacement, persist);
     }
   }
@@ -204,6 +212,11 @@ public class AdminService {
   public VpnState vpn(UUID actor) {
     admin(actor);
     return monitor.refresh();
+  }
+
+  public DashboardSummary dashboardSummary(UUID actor) {
+    admin(actor);
+    return new DashboardSummary(users.count(), devices.count());
   }
 
   public Dashboard dashboard(UUID actor) {

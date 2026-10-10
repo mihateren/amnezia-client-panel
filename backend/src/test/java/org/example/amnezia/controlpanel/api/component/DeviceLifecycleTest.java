@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.TestPropertySource;
 
-@TestPropertySource(properties = "app.vpn.client-signature=<r 64>")
+@TestPropertySource(properties = {"app.vpn.client-signature=<r 64>", "app.vpn.poll-delay=3600000"})
 class DeviceLifecycleTest extends BaseComponentTest {
   @Autowired
   DeviceLifecycleTest(
@@ -38,7 +38,7 @@ class DeviceLifecycleTest extends BaseComponentTest {
       MeterRegistry metrics,
       org.example.amnezia.controlpanel.api.service.ConfigService configs,
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc) {
     this.vpn = vpn;
@@ -79,6 +79,28 @@ class DeviceLifecycleTest extends BaseComponentTest {
             now,
             now,
             null));
+  }
+
+  @Test
+  void shouldListReadAndRenameDevicesWithoutRequestingVpnRuntime() {
+    var created = service.create(user, "Phone");
+    vpn.failure = FakeVpnGateway.Failure.SSH;
+    int calls = vpn.runtimeCalls.get();
+    var list = service.list(user, 0, 12);
+    assertThat(list.content()).extracting(d -> d.id()).containsExactly(created.id());
+    var details = service.get(user, created.id());
+    assertThat(details.status())
+        .isEqualTo(org.example.amnezia.controlpanel.api.dto.DeviceResponse.Status.UNKNOWN);
+    var updated =
+        service.update(
+            user,
+            created.id(),
+            new org.example.amnezia.controlpanel.api.dto.ApiCommands.UpdateDevice(
+                "Renamed",
+                org.example.amnezia.controlpanel.api.persistence.model.Device.Icon.PHONE));
+    assertThat(updated.name()).isEqualTo("Renamed");
+    assertThat(devices.find(created.id()).orElseThrow().name()).isEqualTo("Renamed");
+    assertThat(vpn.runtimeCalls.get()).isEqualTo(calls);
   }
 
   @Test

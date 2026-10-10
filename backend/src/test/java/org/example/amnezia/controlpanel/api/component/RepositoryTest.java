@@ -29,7 +29,7 @@ class RepositoryTest extends BaseComponentTest {
   RepositoryTest(
       UserRepository users,
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           NamedParameterJdbcTemplate jdbc,
       TransactionTemplate tx,
@@ -38,7 +38,7 @@ class RepositoryTest extends BaseComponentTest {
       RefreshSessionRepository sessions,
       org.springframework.security.crypto.password.PasswordEncoder passwords,
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins.SQLITE_LIQUIBASE_BEAN)
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans.SQLITE_LIQUIBASE_BEAN)
           liquibase.integration.spring.SpringLiquibase liquibase) {
     this.users = users;
     this.jdbc = jdbc;

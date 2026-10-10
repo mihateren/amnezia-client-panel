@@ -7,11 +7,14 @@ import org.example.amnezia.controlpanel.api.rest.model.CreateDeviceRequest;
 import org.example.amnezia.controlpanel.api.rest.model.Device;
 import org.example.amnezia.controlpanel.api.rest.model.DevicePage;
 import org.example.amnezia.controlpanel.api.rest.model.DeviceStatus;
+import org.example.amnezia.controlpanel.api.rest.model.UpdateDeviceRequest;
 import org.mapstruct.Mapper;
 
 @Mapper(config = ApiMapperConfig.class)
 public interface DeviceApiMapper {
   ApiCommands.CreateDevice command(CreateDeviceRequest request);
+
+  ApiCommands.UpdateDevice command(UpdateDeviceRequest request);
 
   Device device(DeviceResponse result);
 

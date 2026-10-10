@@ -5,6 +5,13 @@ import org.example.amnezia.controlpanel.api.persistence.query.SqlResourceLoader;
 
 /** Cached classpath SQL used only by test fixtures and characterization checks. */
 public enum TestQuery implements QueryHolder {
+  BLOCK_PROFILE_AUDIT("sql/security/block-profile-audit.sql"),
+  UNBLOCK_PROFILE_AUDIT("sql/security/unblock-profile-audit.sql"),
+  DELETE_VPN_SERVER_SETTINGS("sql/device/delete-vpn-server-settings.sql"),
+  FIND_LEGACY_ICON("sql/device/find-legacy-icon.sql"),
+  INSERT_LEGACY_DEVICE("sql/device/insert-legacy-device.sql"),
+  BLOCK_DEVICE_UPDATE_AUDIT("sql/device/block-update-audit.sql"),
+  UNBLOCK_DEVICE_UPDATE_AUDIT("sql/device/unblock-update-audit.sql"),
   INVITATION_TOKEN_HASH("sql/security/invitation-token-hash.sql"),
   EXPIRE_REFRESH_SESSION("sql/security/expire-refresh-session.sql"),
   INSERT_AUDIT("sql/security/insert-audit.sql"),

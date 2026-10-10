@@ -22,11 +22,16 @@ public class DatabaseStorageMetrics {
   private final Map<String, List<Meter>> tableMeters = new HashMap<>();
   private volatile Map<String, TableStorage> sizes = Map.of();
   private volatile double total = Double.NaN;
+  private volatile double up = Double.NaN;
+  private volatile double checkedAt = Double.NaN;
 
   public DatabaseStorageMetrics(DatabaseMetricRepository repository, MeterRegistry metrics) {
     this.repository = repository;
     this.metrics = metrics;
     Gauge.builder("sqlite_database_allocated_bytes", this, monitor -> monitor.total)
+        .register(metrics);
+    Gauge.builder("sqlite_database_up", this, monitor -> monitor.up).register(metrics);
+    Gauge.builder("sqlite_database_checked_timestamp_seconds", this, monitor -> monitor.checkedAt)
         .register(metrics);
   }
 
@@ -41,6 +46,7 @@ public class DatabaseStorageMetrics {
       for (var table : storage.tables()) current.put(table.tableName(), table);
       sizes = Map.copyOf(current);
       total = storage.allocatedBytes();
+      up = 1;
       for (var table : current.keySet()) {
         tableMeters.computeIfAbsent(
             table,
@@ -53,9 +59,12 @@ public class DatabaseStorageMetrics {
       deleted.removeAll(current.keySet());
       for (var table : deleted) tableMeters.remove(table).forEach(metrics::remove);
     } catch (DataAccessException e) {
+      up = 0;
       total = Double.NaN;
       sizes = Map.of();
       metrics.counter("db_errors").increment();
+    } finally {
+      checkedAt = System.currentTimeMillis() / 1000.0;
     }
   }
 

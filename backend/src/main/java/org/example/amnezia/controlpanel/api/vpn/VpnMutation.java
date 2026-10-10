@@ -1,7 +1,9 @@
 package org.example.amnezia.controlpanel.api.vpn;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -12,7 +14,10 @@ public class VpnMutation {
   private final TransactionTemplate tx;
   private final MeterRegistry metrics;
 
-  public VpnMutation(VpnGateway gateway, TransactionTemplate tx, MeterRegistry metrics) {
+  public VpnMutation(
+      VpnGateway gateway,
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
+      MeterRegistry metrics) {
     this.gateway = gateway;
     this.tx = tx;
     this.metrics = metrics;

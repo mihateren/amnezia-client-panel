@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import org.example.amnezia.controlpanel.api.audit.AuditService;
 import org.example.amnezia.controlpanel.api.config.AppProperties;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.dto.AuthDtos;
 import org.example.amnezia.controlpanel.api.exception.ApiException;
 import org.example.amnezia.controlpanel.api.persistence.model.Invitation;
@@ -18,6 +19,7 @@ import org.example.amnezia.controlpanel.api.persistence.model.User;
 import org.example.amnezia.controlpanel.api.persistence.repository.InvitationRepository;
 import org.example.amnezia.controlpanel.api.persistence.repository.UserRepository;
 import org.example.amnezia.controlpanel.api.security.Secrets;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -42,7 +44,7 @@ public class InvitationService {
       AuditService audit,
       AppProperties config,
       Clock clock,
-      TransactionTemplate tx,
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       ReentrantLock lock) {
     this.invitations = invitations;
     this.users = users;

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   Users as UsersIcon,
   Monitor,
-  Activity,
   ArrowUpRight,
   Plus,
   Search,
@@ -20,143 +19,184 @@ import {
   Modal,
   Pagination,
   ResourceState,
+  DashboardSkeleton,
+  EventsSkeleton,
+  VpnSkeleton,
   useResource,
 } from "./ui";
 import { DeviceDetails } from "./devices";
+import { VpnServerSettings } from "./vpn-server-settings";
+import { useVpnMigration } from "./vpn-migration";
+import { UserPicker } from "./user-picker";
 export const events: Record<string, string> = {
+  VPN_SERVER_UPDATED: "Настройки VPN-сервера изменены",
+  VPN_MIGRATION_STARTED: "Переезд VPN начат",
+  VPN_MIGRATION_COMPLETED: "Переезд VPN завершён",
   USER_LOGIN: "Вход пользователя",
   ADMIN_LOGIN: "Вход администратора",
   USER_LOGOUT: "Выход из системы",
+  USER_NICKNAME_CHANGED: "Никнейм изменён",
+  USER_PASSWORD_CHANGED: "Пароль изменён",
   INVITATION_CREATED: "Приглашение создано",
   INVITATION_USED: "Приглашение принято",
   DEVICE_CREATED: "Устройство добавлено",
   DEVICE_CONFIG_VIEWED: "Просмотр конфигурации",
   DEVICE_CONFIG_DOWNLOADED: "Скачивание конфигурации",
   DEVICE_DELETED: "Устройство удалено",
+  DEVICE_UPDATED: "Устройство изменено",
   USER_CREATED: "Пользователь создан",
   USER_DISABLED: "Пользователь отключён",
   USER_DELETED: "Пользователь удалён",
 };
 export function Dashboard() {
   const r = useResource<Schema<"DashboardResponse">>("/admin/dashboard", 30000);
+  const summary = useResource<Schema<"DashboardSummary">>(
+    "/admin/dashboard/summary",
+    30000,
+  );
   const recent = useResource<Schema<"AuditPage">>("/admin/audit?size=5", 30000);
   const [invite, setInvite] = useState(false);
   return (
     <>
       <header className="page-heading">
         <div>
-          <span className="eyebrow">ВАША ПРИВАТНАЯ СЕТЬ</span>
           <h1>Обзор сети</h1>
-          <p>Всё, что нужно знать о вашем VPN, в одном месте.</p>
         </div>
         <button className="primary" onClick={() => setInvite(true)}>
           <Plus size={18} />
           Пригласить пользователя
         </button>
       </header>
-      <ResourceState {...r} />
-      {r.data && (
-        <>
-          <section className="stats">
-            {[
-              [UsersIcon, "Пользователи", r.data.usersTotal, "Всего в панели"],
-              [
-                Monitor,
-                "Устройства",
-                r.data.devicesTotal,
-                "Управляются панелью",
-              ],
-              [
-                Activity,
-                "Сейчас в сети",
-                r.data.devicesActive,
-                "Активные подключения",
-              ],
-            ].map(([Icon, label, value, caption]) => {
-              const I = Icon as typeof UsersIcon;
-              return (
-                <article className="stat" key={String(label)}>
-                  <div>
-                    <span>{String(label)}</span>
-                    <I size={20} />
-                  </div>
-                  <strong>{String(value)}</strong>
-                  <small>{String(caption)}</small>
-                </article>
-              );
-            })}
-          </section>
-          <section className="overview-grid">
-            <article className="server-card">
-              <div className="card-top">
-                <span className="eyebrow">СОСТОЯНИЕ СЕРВЕРА</span>
-                <Badge value={r.data.vpn.serverUp ? "UP" : "DOWN"} />
-              </div>
-              <div className="server-art">
-                <Server size={58} />
-                <span className={r.data.vpn.serverUp ? "pulse" : ""} />
-              </div>
-              <h2>AmneziaWG</h2>
-              <p>Приватная сеть под вашим контролем</p>
-              <div className="server-numbers">
+      <ResourceState {...summary} loading={false} />
+      {!summary.data && summary.loading && <DashboardSkeleton />}
+      {summary.data && (
+        <section className="stats">
+          {[
+            [
+              UsersIcon,
+              "Пользователи",
+              summary.data.usersTotal,
+              "Всего в панели",
+            ],
+            [
+              Monitor,
+              "Устройства",
+              summary.data.devicesTotal,
+              "Управляются панелью",
+            ],
+          ].map(([Icon, label, value, caption]) => {
+            const I = Icon as typeof UsersIcon;
+            return (
+              <article className="stat" key={String(label)}>
                 <div>
-                  <strong>{r.data.vpn.peersTotal}</strong>
-                  <small>Пиров на сервере</small>
+                  <span>{String(label)}</span>
+                  <I size={20} />
                 </div>
-                <div>
-                  <strong>{r.data.vpn.peersActive}</strong>
-                  <small>Активных пиров</small>
-                </div>
-              </div>
-              <footer>Проверено: {date(r.data.vpn.checkedAt)}</footer>
-            </article>
-            <article className="panel">
-              <div className="section-heading">
-                <h2>Инфраструктура</h2>
-                <span className="subtle">Обновление каждые 30 сек.</span>
-              </div>
-              {Object.entries({
-                application: "Приложение",
-                database: "База данных",
-                ssh: "SSH-подключение",
-                vpn: "VPN-сервис",
-              }).map(([key, label]) => (
-                <div className="infra-row" key={key}>
-                  <span className="infra-icon">
-                    <Server size={18} />
-                  </span>
-                  <div>
-                    <strong>{label}</strong>
-                    <small>
-                      {
-                        (
-                          {
-                            application: "API панели управления",
-                            database: "Хранилище пользователей и устройств",
-                            ssh: "Соединение с VPN-сервером",
-                            vpn: "Состояние AmneziaWG",
-                          } as Record<string, string>
-                        )[key]
-                      }
-                    </small>
-                  </div>
-                  <Badge
-                    value={
-                      r.data!.infrastructure?.[
-                        key as keyof Schema<"InfrastructureStatus">
-                      ] || "UNKNOWN"
-                    }
-                  />
-                </div>
-              ))}
-              <div className="panel-note">
-                Сервер может содержать устройства, созданные вне панели. Они
-                учитываются в числе пиров.
-              </div>
-            </article>
-          </section>
-        </>
+                <strong>{String(value)}</strong>
+                <small>{String(caption)}</small>
+              </article>
+            );
+          })}
+        </section>
       )}
+      <section className="overview-grid">
+        {!r.data && (
+          <div className="panel skeleton-server">
+            <ResourceState {...r} loading={false} />
+            {r.loading && (
+              <div role="status" aria-label="Загрузка состояния VPN">
+                <div className="skeleton skeleton-label" />
+                <div className="skeleton skeleton-number" />
+                <div className="skeleton skeleton-row" />
+              </div>
+            )}
+          </div>
+        )}
+        {r.data && (
+          <article className="server-card">
+            <ResourceState {...r} loading={false} />
+            <div className="card-top">
+              <Badge value={r.data.vpn.serverUp ? "UP" : "DOWN"} />
+            </div>
+            <div className="server-art">
+              <Server size={58} />
+              <span className={r.data.vpn.serverUp ? "pulse" : ""} />
+            </div>
+            <h2>AmneziaWG</h2>
+
+            <div className="server-numbers">
+              <div>
+                <strong>{r.data.vpn.peersTotal}</strong>
+                <small>Пиров на сервере</small>
+              </div>
+              <div>
+                <strong>{r.data.vpn.peersActive}</strong>
+                <small>Активных пиров</small>
+              </div>
+            </div>
+            <footer>Проверено: {date(r.data.vpn.checkedAt)}</footer>
+          </article>
+        )}
+        <article className="panel">
+          <div className="section-heading">
+            <h2>Инфраструктура</h2>
+            <span className="subtle">Обновление каждые 30 сек.</span>
+          </div>
+          {Object.entries({
+            application: "Приложение",
+            database: "База данных",
+            ssh: "SSH-подключение",
+            vpn: "VPN-сервис",
+          }).map(([key, label]) => (
+            <div className="infra-row" key={key}>
+              <span className="infra-icon">
+                <Server size={18} />
+              </span>
+              <div>
+                <strong>{label}</strong>
+                <small>
+                  {
+                    (
+                      {
+                        application: "API панели управления",
+                        database: "Хранилище пользователей и устройств",
+                        ssh: "Соединение с VPN-сервером",
+                        vpn: "Состояние AmneziaWG",
+                      } as Record<string, string>
+                    )[key]
+                  }
+                </small>
+              </div>
+              {(
+                key === "application" || key === "database"
+                  ? !summary.data && summary.loading
+                  : !r.data && r.loading
+              ) ? (
+                <span
+                  className="skeleton skeleton-infra-status"
+                  aria-label={"Загрузка: " + label}
+                />
+              ) : (
+                <Badge
+                  value={
+                    key === "application" || key === "database"
+                      ? summary.data
+                        ? "UP"
+                        : "UNKNOWN"
+                      : r.data?.infrastructure?.[
+                          key as keyof Schema<"InfrastructureStatus">
+                        ] || "UNKNOWN"
+                  }
+                />
+              )}
+            </div>
+          ))}
+          <div className="panel-note">
+            Сервер может содержать устройства, созданные вне панели. Они
+            учитываются в числе пиров.
+          </div>
+        </article>
+      </section>
       <section className="panel">
         <div className="section-heading">
           <h2>Последние события</h2>
@@ -164,8 +204,17 @@ export function Dashboard() {
             Весь журнал <ArrowUpRight size={15} />
           </Link>
         </div>
-        <ResourceState {...recent} empty={!recent.data?.content.length} />
-        {recent.data && <AuditTable rows={recent.data.content} />}
+        {!recent.data && recent.loading && <EventsSkeleton />}
+        <ResourceState
+          {...recent}
+          loading={false}
+          empty={
+            !recent.loading && !recent.error && !recent.data?.content.length
+          }
+        />
+        {!!recent.data?.content.length && (
+          <AuditTable rows={recent.data.content} />
+        )}
       </section>
       {invite && <Invitation onClose={() => setInvite(false)} />}
     </>
@@ -209,18 +258,17 @@ function Invitation({ onClose }: { onClose: () => void }) {
         </>
       ) : (
         <form onSubmit={submit}>
-          <p>Пользователь сам выберет никнейм и пароль при регистрации.</p>
           <label>
-            Внутреннее имя
+            Имя для администратора
             <input
               name="name"
               maxLength={100}
               required
-              placeholder="Например, Александр · команда"
+              placeholder="Например, Александр"
               autoFocus
             />
           </label>
-          <small>Имя для администратора; оно не заменяет никнейм.</small>
+
           <ErrorBox error={error} />
           <button className="primary wide" disabled={busy}>
             {busy ? "Создаём…" : "Создать приглашение"}
@@ -243,9 +291,7 @@ export function Users() {
     <>
       <header className="page-heading">
         <div>
-          <span className="eyebrow">УПРАВЛЕНИЕ ДОСТУПОМ</span>
           <h1>Пользователи</h1>
-          <p>Приглашайте людей и управляйте доступом к вашей сети.</p>
         </div>
         <button className="primary" onClick={() => setInvite(true)}>
           <Plus size={18} />
@@ -280,58 +326,64 @@ export function Users() {
             <option value="DISABLED">Отключённые</option>
           </select>
         </div>
-        <ResourceState {...r} empty={!r.data?.content.length} />
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Пользователь</th>
-                <th>Роль</th>
-                <th>Статус</th>
-                <th>Устройства</th>
-                <th>Дата регистрации</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {r.data?.content.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <button
-                      className="user-link"
-                      onClick={() => setSelected(u.id)}
-                    >
-                      <span className="avatar">
-                        {u.nickname.slice(0, 2).toUpperCase()}
-                      </span>
-                      <span>
-                        <strong>{u.nickname}</strong>
-                        <small>{u.internalName}</small>
-                      </span>
-                    </button>
-                  </td>
-                  <td>
-                    {u.role === "ADMIN" ? "Администратор" : "Пользователь"}
-                  </td>
-                  <td>
-                    <Badge value={u.status} />
-                  </td>
-                  <td>{u.deviceCount}</td>
-                  <td>{date(u.createdAt)}</td>
-                  <td>
-                    <button
-                      aria-label={`Открыть ${u.nickname}`}
-                      onClick={() => setSelected(u.id)}
-                    >
-                      <ArrowUpRight size={17} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {r.data && <Pagination {...r.data} onChange={setPage} />}
+        <ResourceState
+          {...r}
+          empty={!r.data?.content.length}
+          emptyTitle="Ничего не найдено"
+          emptyDescription="Попробуйте изменить условия поиска."
+        />
+        {!!r.data?.content.length && (
+          <>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Пользователь</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    <th>Устройства</th>
+                    <th>Дата регистрации</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.data?.content.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <button
+                          className="user-link"
+                          onClick={() => setSelected(u.id)}
+                        >
+                          <span>
+                            <strong>{u.nickname}</strong>
+                            <small>{u.internalName}</small>
+                          </span>
+                        </button>
+                      </td>
+                      <td>
+                        {u.role === "ADMIN" ? "Администратор" : "Пользователь"}
+                      </td>
+                      <td>
+                        <Badge value={u.status} />
+                      </td>
+                      <td>{u.deviceCount}</td>
+                      <td>{date(u.createdAt)}</td>
+                      <td>
+                        <button
+                          aria-label={`Открыть ${u.nickname}`}
+                          onClick={() => setSelected(u.id)}
+                        >
+                          <ArrowUpRight size={17} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {r.data && <Pagination {...r.data} onChange={setPage} />}
+          </>
+        )}
       </section>
       {invite && <Invitation onClose={() => setInvite(false)} />}
       {selected && (
@@ -380,7 +432,6 @@ function UserDetails({
               onClick={() => setDevice(d.id)}
             >
               {d.name}
-              <Badge value={d.status} />
             </button>
           ))}
           {!r.data.devices?.length && <p>Нет устройств.</p>}
@@ -494,9 +545,7 @@ export function Audit() {
     <>
       <header className="page-heading">
         <div>
-          <span className="eyebrow">БЕЗОПАСНОСТЬ</span>
           <h1>Журнал событий</h1>
-          <p>История действий в панели управления.</p>
         </div>
         <button onClick={r.reload} disabled={r.loading}>
           <RefreshCw size={17} />
@@ -530,14 +579,10 @@ export function Audit() {
               <option value="FAILURE">Ошибка</option>
             </select>
           </label>
-          <label>
-            ID пользователя
-            <input
-              placeholder="UUID"
-              value={filters.userId || ""}
-              onChange={(e) => filter("userId", e.target.value)}
-            />
-          </label>
+          <UserPicker
+            value={filters.userId || ""}
+            onChange={(id) => filter("userId", id)}
+          />
           {["from", "to"].map((k) => (
             <label key={k}>
               {k === "from" ? "С даты" : "По дату"}
@@ -555,8 +600,13 @@ export function Audit() {
             </label>
           ))}
         </div>
-        <ResourceState {...r} empty={!r.data?.content.length} />
-        {r.data && (
+        <ResourceState
+          {...r}
+          empty={!r.data?.content.length}
+          emptyTitle="Ничего не найдено"
+          emptyDescription="Попробуйте изменить условия поиска."
+        />
+        {!!r.data?.content.length && (
           <>
             <AuditTable rows={r.data.content} />
             <Pagination {...r.data} onChange={setPage} />
@@ -567,21 +617,82 @@ export function Audit() {
   );
 }
 export function Vpn() {
+  const migration = useVpnMigration();
+  const [savingServer, setSavingServer] = useState(false);
+  const [serverForm, setServerForm] = useState(false);
+  const [transition, setTransition] = useState<"start" | "complete">();
   const r = useResource<Schema<"VpnState">>("/admin/vpn", 30000);
   return (
     <>
       <header className="page-heading">
         <div>
-          <span className="eyebrow">ИНФРАСТРУКТУРА</span>
           <h1>VPN-сервер</h1>
-          <p>Состояние AmneziaWG в реальном времени.</p>
         </div>
-        <button onClick={r.reload} disabled={r.loading}>
-          <RefreshCw size={17} />
-          Обновить
-        </button>
+        <div className="device-toolbar">
+          <button
+            className="primary"
+            disabled={!migration.data || savingServer}
+            onClick={() =>
+              setTransition(migration.data?.maintenance ? "complete" : "start")
+            }
+          >
+            {migration.data?.maintenance ? "Закончить работы" : "Начать работы"}
+          </button>
+          <button
+            onClick={() => setServerForm(true)}
+            disabled={!migration.data}
+          >
+            <Plus size={18} />
+            Добавить новый сервер
+          </button>
+          <button
+            onClick={r.reload}
+            disabled={r.loading}
+            aria-label="Обновить состояние VPN"
+          >
+            <RefreshCw size={17} />
+          </button>
+        </div>
       </header>
-      <ResourceState {...r} />
+      {serverForm && (
+        <Modal
+          title="Добавить новый сервер"
+          onClose={() => {
+            if (!savingServer) setServerForm(false);
+          }}
+        >
+          <VpnServerSettings
+            maintenance={!!migration.data?.maintenance}
+            onBusy={setSavingServer}
+          />
+        </Modal>
+      )}
+      {transition && migration.data && (
+        <Confirm
+          title={
+            transition === "start"
+              ? "Начать работы VPN?"
+              : "Закончить работы VPN?"
+          }
+          description={
+            transition === "start"
+              ? "Создание, удаление и выдача конфигураций будут приостановлены до завершения работ. Затем нажмите «Добавить новый сервер» и сохраните IP и SSH-доступ к настроенному AmneziaWG. После этого закончите работы. Старые конфигурации устареют только при смене IP. Режим обслуживания ограничивает операции в панели; старый VPN-сервер нужно остановить самостоятельно."
+              : "Панель проверит сохранённое подключение к AmneziaWG. Если IP изменился с начала работ, старые конфигурации станут устаревшими. Если IP прежний, конфигурации сохранятся."
+          }
+          action={() =>
+            post("/admin/vpn/migration/" + transition, {
+              generation: migration.data!.generation,
+            })
+          }
+          onClose={() => setTransition(undefined)}
+          onDone={() => {
+            void migration.reload();
+            void r.reload();
+          }}
+        />
+      )}
+      <ResourceState {...r} loading={false} />
+      {!r.data && r.loading && <VpnSkeleton />}
       {r.data && (
         <section className="panel vpn-detail">
           <Server size={48} />
@@ -595,11 +706,6 @@ export function Vpn() {
             <dt>Последняя проверка</dt>
             <dd>{date(r.data.checkedAt)}</dd>
           </dl>
-          <p>
-            Пиры, созданные вне панели, также входят в статистику сервера.
-            Настройки сервера и интервал определения активности задаются в
-            конфигурации бэкенда.
-          </p>
         </section>
       )}
     </>

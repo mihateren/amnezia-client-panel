@@ -3,15 +3,18 @@
 React + TypeScript application for Amnezia Control Panel. See the root README for
 setup, Docker, authentication and API generation instructions.
 
-- `src/auth.tsx`: session and invitation registration
+- `src/auth.tsx`: sessions, invitation registration and nickname/password editing
 - `src/api.ts`: authenticated transport, refresh coordination, error envelope
 - `src/devices.tsx`: devices and configuration delivery
 - `src/admin.tsx`: users, invitations, dashboard, VPN health and audit
+- `src/user-picker.tsx`: paginated user dropdown for audit filtering
+- `src/guide.tsx`: connection guide with supplied screenshots and official app links
+- `src/theme.tsx`: persistent light/dark theme, switched in the sidebar
 - `src/ui.tsx`: accessible dialogs, errors, paging and resource lifecycle
 - `src/schema.d.ts`: generated API types (do not edit by hand)
 - `tests/app.spec.ts`: browser acceptance tests
 
-Design: responsive Russian interface, dark green navigation, light work area;
+Design: responsive Russian interface with light/dark themes and Amnezia orange accents;
 no remote fonts, analytics or external assets.
 
 The live browser test is opt-in and uses the ignored root `.env`:

@@ -14,9 +14,11 @@ public class DeviceRowMapper implements RowMapper<Device> {
         RowValues.uuid(rs.getString("id")),
         RowValues.uuid(rs.getString("user_id")),
         rs.getString("name"),
+        Device.Icon.valueOf(rs.getString("icon")),
         rs.getString("vpn_ip"),
         rs.getString("client_public_key"),
         rs.getString("client_private_key_enc"),
-        RowValues.instant(rs.getString("created_at")));
+        RowValues.instant(rs.getString("created_at")),
+        rs.getLong("generation"));
   }
 }

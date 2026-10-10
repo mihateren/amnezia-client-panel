@@ -2,6 +2,8 @@ package org.example.amnezia.controlpanel.api.persistence.query;
 
 public enum UserQuery implements QueryHolder {
   FIND_BY_ID("sql/user/find-by-id.sql"),
+  UPDATE_NICKNAME("sql/user/update-nickname.sql"),
+  UPDATE_PASSWORD("sql/user/update-password.sql"),
   FIND_BY_NICKNAME("sql/user/find-by-nickname.sql"),
   INSERT("sql/user/insert.sql"),
   COUNT("sql/user/count.sql"),

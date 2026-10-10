@@ -46,6 +46,16 @@ management:
       probes:
         enabled: true
   metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        sqlite.query: true
+      minimum-expected-value:
+        http.server.requests: 1ms
+        sqlite.query: 1ms
+      maximum-expected-value:
+        http.server.requests: 30s
+        sqlite.query: 30s
     tags:
       application: amnezia-control-panel
 monitoring:

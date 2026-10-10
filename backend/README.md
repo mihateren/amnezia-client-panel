@@ -171,7 +171,11 @@ append-only audit triggers. Existing initial migration was preserved. No foreign
 All database snapshots, repositories, queries and ResultSet mappers are grouped under
 `persistence/{model,repository,query,mapper}`. User, Invitation, Device, ConfigLink,
 RefreshSession and Audit repositories share one `NamedParameterJdbcTemplate`;
-constructor parameters use `@Qualifier(DatabasePins.SQLITE_NAMED_JDBC_TEMPLATE_BEAN)`.
+constructor parameters use `@Qualifier(DatabaseBeans.SQLITE_NAMED_JDBC_TEMPLATE_BEAN)`.
+Repository contracts live in `persistence/repository`; JDBC implementations live in
+`persistence/repository/impl` and retain their original Spring bean names. Services depend
+on the contracts. `SqliteConfig` owns JDBC, Liquibase and transaction infrastructure;
+`DatabaseBeans` centralizes their names, including the qualified transaction template.
 Parameters are passed as `MapSqlParameterSource` using `QueryParameter` constants.
 
 The six corresponding Query enums implement `QueryHolder`. Their 32 SQL files live in
@@ -209,29 +213,65 @@ Grafana initializes these credentials on its first start; changing .env does not
 the password in an existing Grafana volume.
 
 Provisioning automatically installs the Prometheus datasource (`http://prometheus:9090`,
-UID `acp-prometheus`) and the **Amnezia Control Panel** dashboard in the Amnezia folder
-(`/d/amnezia-control-panel`). Definitions live in `monitoring/grafana/`.
+UID `acp-prometheus`) and exactly three dashboards in the Amnezia folder:
+
+- **Application Overview** (`/d/amnezia-control-panel`, existing UID preserved): HTTP, JVM and system.
+- **Database Monitoring** (`/d/amnezia-database`): SQLite availability, SQL performance/errors and storage.
+- **VPN Monitoring** (`/d/amnezia-vpn`): server status, traffic, devices and SSH diagnostics.
+
+Definitions live in `monitoring/grafana/`. Navigation preserves time and shared job/instance variables.
+Each dashboard selects one instance, puts KPI stats first and collapses secondary diagnostic rows.
 Grafana state is persisted in `grafana-data`; Prometheus uses `prometheus-data` with
-15 days of retention. Dashboard edits should be made in the committed JSON.
+15 days of retention. Edit `monitoring/generate-dashboards.mjs` and run
+`node backend/monitoring/generate-dashboards.mjs` from the repository root to regenerate committed JSON.
 
-Panels cover VPN availability, total/active peers, per-peer RX/TX and handshake age,
-HTTP rate/status/errors/mean latency, JVM heap/buffers/threads, process CPU/RSS,
-SSH/DB/VPN apply and rollback errors. The dashboard uses native application/VPN tabs,
-Russian titles and help tooltips. The HTTP route filter applies to request rate,
-errors and latency; URI values are route templates, not individual device IDs.
-Application availability is displayed as a green/red/gray lamp. All graph sections
-start collapsed, and can be opened independently within the application/VPN tabs.
+HTTP panels exclude Actuator and use route templates, not individual IDs. HTTP and SQL
+histograms use bounded 1ms–30s expected values and a five-minute percentile window.
+Zero observations produce no latency; sample-count panels help interpret low-RPS quantiles.
+Missing instances produce no data, not artificial zero errors or a healthy status.
+Application availability is the latest Prometheus scrape status, not an end-to-end business probe.
 
-The application tab includes Hikari pool connections, wait time, connection usage,
-timeouts and DB errors. SQLite storage metrics refresh every 30 seconds:
+The database dashboard includes Hikari connections, wait/usage time and timeouts.
+`sqlite_query_seconds_{count,sum,bucket}` instruments calls through the shared named JDBC template,
+including connection acquisition and result mapping, once per call. Labels are bounded:
+`operation=SELECT|INSERT|UPDATE|DELETE|OTHER`, `error=none|busy|locked|constraint|sql|other`.
+SQL text, bind values and exception messages are never labels. Liquibase and direct JDBC calls
+outside that template are not included; these are JDBC operation timings, not SQLite engine-only timings.
+`db_errors_total` remains an application-level counter and must not be added to query errors
+(the same failure may be counted by several existing handlers).
+`sqlite_database_up` reports the latest storage read; `sqlite_database_checked_timestamp_seconds`
+records its completion. Dashboard health is unknown after 120 seconds without a check; adjust
+that threshold if changing `monitoring.storage-poll-delay` substantially. This is not a write probe.
+SQLite storage metrics refresh every 30 seconds:
 `sqlite_database_allocated_bytes` measures main-file pages (including free pages,
 excluding WAL/journals); `sqlite_table_allocated_bytes{table}` measures table and
 index pages together; `sqlite_table_payload_bytes{table}` measures useful payload.
 Table sizes use read-only SQLite `dbstat`, include automatic/explicit indexes,
 exclude SQLite internal tables and never read stored credentials into metrics.
 Peer panels are empty before devices exist; when SSH is unavailable VPN shows DOWN
-and peer runtime samples are unknown. RSS uses the standard micrometer-jvm-extras
+and peer runtime samples are unknown. Existing VPN metrics and collection are unchanged.
+RX means devices → server; TX means server → devices. Byte metrics are gauges containing
+cumulative snapshots, so traffic speed is an estimate from a one-minute difference, never
+`rate()` on a gauge. Observed negative differences after resets are hidden; resets followed by
+rapid growth between snapshots cannot be detected. Current byte totals are not traffic over
+the selected time range and cover only devices known to the panel. Peer filters affect traffic
+and device diagnostics, while total/online/offline KPI counts cover the whole VPN server.
+Match the diagnostic handshake threshold variable to backend `HANDSHAKE_THRESHOLD` (default 180s).
+Zero handshake means none recorded, not VPN server failure. The existing SSH error counter
+also includes commands unrelated to stats; there is no dedicated collection-error or last-poll metric.
+RSS uses the standard micrometer-jvm-extras
 Linux binder; it is unavailable when running natively on Windows.
+
+Offline structural validation and PromQL edge cases:
+
+```powershell
+node backend/monitoring/validate-dashboards.mjs
+docker run --rm --mount "type=bind,source=$((Resolve-Path backend/build/monitoring-check).Path),target=/checks,readonly" --entrypoint /bin/promtool prom/prometheus:v3.13.3 test rules /checks/promql-tests.json
+```
+
+The fixtures cover absent exporters, idle/low-RPS HTTP, gauge traffic reset and stale SQLite checks.
+The Compose smoke test checks all three provisioned dashboards, navigation, every panel query
+and absence of fabricated data for a missing instance.
 
 Prometheus reads its bearer credential from a mode-0600 tmpfs file populated from
 METRICS_TOKEN at startup. Rotate this independent token by updating .env and recreating
@@ -266,4 +306,44 @@ AmneziaVPN 5.0.0.5 / AWG 3 build and network. The backend neither installs nor u
 
 Configure reverse proxy access logs to redact /api/v1/config/* and
 /api/v1/invitations/* paths and disable request/response body logging: those paths
-carry bearer secrets. Runtime host/threshold changes currently require a restart.
+carry bearer secrets. Runtime threshold/container/path changes require a restart; server IP and SSH credentials can be changed through the admin UI.
+
+## VPN maintenance and server settings
+
+On /vpn choose **Начать работы**. Maintenance and the original server IP are persisted
+in SQLite and survive backend restarts. Creation, deletion (including outdated records),
+and configuration delivery are blocked during maintenance. The VPN daemon itself is not stopped.
+
+Fill in the **Подключение к серверу** form: IP, SSH username/port, private key, public SSH
+host key (type and base64, without comment), and VPN UDP port. Obtain the host key through
+a trusted provider console; strict host-key checking remains enabled. Save with **Сохранить сервер**.
+A different IP requires explicit private and public host keys. On the same IP a blank private
+key preserves the existing credential. Unencrypted SSH private keys are supported; interactive
+passphrase entry is not supported. The private key is encrypted with ENCRYPTION_KEY in SQLite,
+never returned by the API, and materialized only in temporary restricted files for each SSH call.
+Keep ENCRYPTION_KEY and the SQLite volume across redeployments.
+
+Settings apply immediately without a backend restart and remain after a restart. Until settings
+are saved in the UI, the existing environment and mounted SSH files are used. Container,
+interface, file paths, subnet and other AmneziaWG options still come from environment configuration;
+the prepared server must match them. This form does not install or reconfigure AmneziaWG.
+
+Choose **Закончить работы**. The backend checks config readability/parsing, public key/PSK
+and AWG runtime access. This checks SSH/AWG, not end-to-end client connectivity. A failure leaves
+maintenance enabled so credentials can be corrected. Generation advances atomically only when
+the final IP differs from the IP recorded at the start of this maintenance window (normalized
+IPv4/IPv6 comparison). Changing settings and returning to the original IP does not advance it.
+Starting/finishing works on the same IP preserves devices and configs. Changing SSH credentials
+alone does not advance generation; existing VPN keys/protocol settings and port must remain
+compatible with issued client configs.
+
+When the IP changes, previous-generation devices become OUTDATED. The user's banner stays until
+all their outdated records are deleted. They do not consume the active five-device limit and
+cannot issue configs/import links. After maintenance their deletion is a local audited operation;
+it does not revoke access on the old VPS or remove profiles from AmneziaVPN. Retire the old VPS
+separately. Settings edits and maintenance transitions are audited without credential contents.
+The panel must remain reachable independently of VPN.
+
+User device list/detail reads and metadata updates use SQLite only, without SSH runtime calls.
+Their status is UNKNOWN or OUTDATED; handshake/traffic values are not live telemetry.
+The independent VPN monitor and administrative monitoring retain their existing behavior.

@@ -17,6 +17,17 @@ public final class AuthDtos {
     }
   }
 
+  public record UpdateNickname(@NotBlank @Size(min = 3, max = 64) String nickname) {}
+
+  public record ChangePassword(
+      @NotBlank @Size(min = 8, max = 256) String currentPassword,
+      @NotBlank @Size(min = 8, max = 256) String newPassword) {
+    @Override
+    public String toString() {
+      return "ChangePassword[redacted]";
+    }
+  }
+
   public record CurrentUser(UUID id, String nickname, User.Role role, User.Status status) {
     public static CurrentUser from(User user) {
       return new CurrentUser(user.id(), user.nickname(), user.role(), user.status());

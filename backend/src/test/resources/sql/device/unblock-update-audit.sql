@@ -1,0 +1,1 @@
+DROP TRIGGER test_block_device_update_audit

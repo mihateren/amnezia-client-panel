@@ -1,0 +1,3262 @@
+{
+  "uid": "amnezia-vpn",
+  "title": "VPN Monitoring",
+  "description": "AmneziaWG: состояние → нагрузка → устройства и диагностика SSH. RX/TX относительно сервера. Семантика существующих VPN-метрик сохранена.",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "amnezia",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "graphTooltip": 1,
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "acp-prometheus"
+        },
+        "query": {
+          "query": "label_values(up{job=\"amnezia-control-panel\"}, job)",
+          "refId": "job"
+        },
+        "definition": "label_values(up{job=\"amnezia-control-panel\"}, job)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "acp-prometheus"
+        },
+        "query": {
+          "query": "label_values(up{job=~\"$job\"}, instance)",
+          "refId": "instance"
+        },
+        "definition": "label_values(up{job=~\"$job\"}, instance)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "options": []
+      },
+      {
+        "name": "peer",
+        "label": "Peer",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "acp-prometheus"
+        },
+        "query": {
+          "query": "label_values(vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\"}, peer_id)",
+          "refId": "peer"
+        },
+        "definition": "label_values(vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\"}, peer_id)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "handshake_seconds",
+        "label": "Handshake threshold (s)",
+        "type": "custom",
+        "query": "180,300,600,900",
+        "current": {
+          "text": "180",
+          "value": "180"
+        },
+        "options": [
+          {
+            "text": "180",
+            "value": "180",
+            "selected": true
+          },
+          {
+            "text": "300",
+            "value": "300",
+            "selected": false
+          },
+          {
+            "text": "600",
+            "value": "600",
+            "selected": false
+          },
+          {
+            "text": "900",
+            "value": "900",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Application Overview",
+      "type": "link",
+      "url": "/d/amnezia-control-panel",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "dashboard",
+      "tooltip": "Application Overview"
+    },
+    {
+      "title": "Database Monitoring",
+      "type": "link",
+      "url": "/d/amnezia-database",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "dashboard",
+      "tooltip": "Database Monitoring"
+    },
+    {
+      "title": "VPN Monitoring",
+      "type": "link",
+      "url": "/d/amnezia-vpn",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "dashboard",
+      "tooltip": "VPN Monitoring"
+    }
+  ],
+  "panels": [
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 1,
+      "title": "Статус VPN",
+      "type": "stat",
+      "description": "Последняя проверка SSH/VPN. Отсутствие handshake отдельного устройства не означает DOWN сервера.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(vpn_server_up{job=~\"$job\",instance=~\"$instance\"}) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Статус VPN",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 2,
+      "title": "Всего peers",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((vpn_peers_total{job=~\"$job\",instance=~\"$instance\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Всего peers",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 3,
+      "title": "Online peers",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((vpn_peers_active{job=~\"$job\",instance=~\"$instance\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Online peers",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 4,
+      "title": "Offline peers",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((vpn_peers_total{job=~\"$job\",instance=~\"$instance\"} - vpn_peers_active{job=~\"$job\",instance=~\"$instance\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Offline peers",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 5,
+      "title": "Доля online",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((vpn_peers_active{job=~\"$job\",instance=~\"$instance\"} / (vpn_peers_total{job=~\"$job\",instance=~\"$instance\"} > 0)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Доля online",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 6,
+      "title": "RX от устройств",
+      "type": "stat",
+      "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((sum(vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"})) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "RX от устройств",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 7,
+      "title": "TX устройствам",
+      "type": "stat",
+      "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((sum(vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"})) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "TX устройствам",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 8,
+      "title": "Без handshake",
+      "type": "stat",
+      "description": "0 timestamp означает, что handshake отсутствует. Фильтр Peer применяется к трафику и таблицам; сводные peers всегда относятся ко всему серверу.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((count(vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} == 0) or (count(vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} == vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"}) * 0)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "Без handshake",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Traffic",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 10,
+      "title": "Traffic • Скорость RX/TX (оценка)",
+      "type": "timeseries",
+      "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((sum(((vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "RX • устройства → сервер",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(((vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "TX • сервер → устройства",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^RX"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^TX"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Online"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Offline"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 11,
+      "title": "Traffic • Снимок накопленных байтов",
+      "type": "timeseries",
+      "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "acp-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((sum(vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"})) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "RX • устройства → сервер",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"})) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+          "legendFormat": "TX • сервер → устройства",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Нет данных",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "Нет данных",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^RX"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^TX"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Online"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Offline"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Traffic • Диагностика устройств",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 13,
+          "title": "Traffic • Top 10 RX (оценка)",
+          "type": "table",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((topk(10, ((vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 0,
+            "y": 19,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 14,
+          "title": "Traffic • Top 10 TX (оценка)",
+          "type": "table",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((topk(10, ((vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 12,
+            "y": 19,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 15,
+          "title": "Traffic • RX по устройствам",
+          "type": "timeseries",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((topk(10, ((vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "{{user_name}} / {{peer_name}} • {{peer_id}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ],
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^RX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^TX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "2xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "3xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "4xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "5xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Offline"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "last"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 27,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 16,
+          "title": "Traffic • TX по устройствам",
+          "type": "timeseries",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((topk(10, ((vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} - vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} offset 1m) >= 0) / 60)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "{{user_name}} / {{peer_name}} • {{peer_id}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ],
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^RX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^TX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "2xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "3xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "4xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "5xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Offline"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "last"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 27,
+            "w": 12,
+            "h": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "row",
+      "title": "Peers",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 18,
+          "title": "Peers • Online / Offline",
+          "type": "timeseries",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((vpn_peers_active{job=~\"$job\",instance=~\"$instance\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "Online",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            },
+            {
+              "refId": "B",
+              "expr": "((vpn_peers_total{job=~\"$job\",instance=~\"$instance\"} - vpn_peers_active{job=~\"$job\",instance=~\"$instance\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "Offline",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ],
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^RX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^TX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "2xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "3xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "4xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "5xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Offline"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "last"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 19,
+          "title": "Peers • Возраст handshake",
+          "type": "table",
+          "description": "Только ненулевые timestamps. Online определяется backend по HANDSHAKE_THRESHOLD, по умолчанию 3 минуты.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((time() - (vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} > 0)) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 12,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 20,
+          "title": "Peers • Без недавнего handshake",
+          "type": "table",
+          "description": "Диагностический порог ниже следует согласовать с HANDSHAKE_THRESHOLD backend.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(((time() - (vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} > 0)) > $handshake_seconds) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 21,
+          "title": "Peers • Handshake отсутствует",
+          "type": "table",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((vpn_peer_last_handshake_timestamp{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"} == 0) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 12,
+            "y": 28,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 22,
+          "title": "Peers • Накопленный RX",
+          "type": "table",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((vpn_peer_rx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 23,
+          "title": "Peers • Накопленный TX",
+          "type": "table",
+          "description": "Gauge со снимком накопленных байтов VPN-сервера. Скорость — оценка разности за 1 минуту / 60; отрицательная разность после сброса скрывается. Сброс с быстрым ростом между снимками не обнаружим. Точный трафик за период недоступен без изменения метрик. Только устройства, известные панели.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((vpn_peer_tx_bytes{job=~\"$job\",instance=~\"$instance\",peer_id=~\"$peer\"}) and on() (vpn_server_up{job=~\"$job\",instance=~\"$instance\"} == 1)) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": true,
+              "range": false,
+              "format": "table",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "application": true
+                },
+                "renameByName": {
+                  "peer_name": "Устройство",
+                  "user_name": "Пользователь",
+                  "peer_id": "ID",
+                  "uri": "Маршрут",
+                  "method": "Метод",
+                  "operation": "Операция",
+                  "error": "Ошибка",
+                  "Value": "Value"
+                }
+              }
+            }
+          ],
+          "gridPos": {
+            "x": 12,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "type": "row",
+      "title": "Server Health",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 25,
+          "title": "VPN • История доступности",
+          "type": "timeseries",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(vpn_server_up{job=~\"$job\",instance=~\"$instance\"}) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "VPN",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ],
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^RX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^TX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "2xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "3xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "4xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "5xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Offline"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "last"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 8
+          }
+        },
+        {
+          "id": 26,
+          "title": "VPN • Ошибки интеграции",
+          "type": "timeseries",
+          "description": "SSH включает сбор статистики и другие SSH-команды. Отдельного счётчика ошибок сбора нет. Отсутствующий rollback counter означает нет данных, а не подтверждённый ноль.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "acp-prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(sum(rate(ssh_errors_total{job=~\"$job\",instance=~\"$instance\"}[$__rate_interval]))) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "ssh_errors",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            },
+            {
+              "refId": "B",
+              "expr": "(sum(rate(vpn_apply_errors_total{job=~\"$job\",instance=~\"$instance\"}[$__rate_interval]))) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "vpn_apply_errors",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            },
+            {
+              "refId": "C",
+              "expr": "(sum(rate(vpn_rollback_errors_total{job=~\"$job\",instance=~\"$instance\"}[$__rate_interval]))) and on() (up{job=~\"$job\",instance=~\"$instance\"} == 1)",
+              "legendFormat": "vpn_rollback_errors",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "acp-prometheus"
+              },
+              "instant": false,
+              "range": true,
+              "format": "time_series",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "noValue": "Нет данных",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "nan",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                },
+                {
+                  "type": "special",
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "Нет данных",
+                      "color": "gray"
+                    }
+                  }
+                }
+              ],
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^RX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^TX"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "2xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "3xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "4xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "5xx"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Offline"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "last"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 21,
+            "w": 12,
+            "h": 8
+          }
+        }
+      ]
+    }
+  ]
+}

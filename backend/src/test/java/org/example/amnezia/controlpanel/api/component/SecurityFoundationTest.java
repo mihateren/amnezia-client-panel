@@ -29,7 +29,7 @@ class SecurityFoundationTest extends BaseComponentTest {
       AuthService auth,
       PasswordEncoder passwords,
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           NamedParameterJdbcTemplate jdbc) {
     this.secrets = secrets;

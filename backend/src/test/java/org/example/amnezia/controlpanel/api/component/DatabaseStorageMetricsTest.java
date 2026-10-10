@@ -3,7 +3,7 @@ package org.example.amnezia.controlpanel.api.component;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.example.amnezia.controlpanel.api.config.db.DatabasePins;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.monitoring.DatabaseStorageMetrics;
 import org.example.amnezia.controlpanel.api.persistence.repository.DatabaseMetricRepository;
 import org.example.amnezia.controlpanel.api.support.TestQuery;
@@ -21,7 +21,7 @@ class DatabaseStorageMetricsTest extends BaseComponentTest {
 
   @Autowired
   DatabaseStorageMetricsTest(
-      @Qualifier(DatabasePins.SQLITE_NAMED_JDBC_TEMPLATE_BEAN) NamedParameterJdbcTemplate jdbc,
+      @Qualifier(DatabaseBeans.SQLITE_NAMED_JDBC_TEMPLATE_BEAN) NamedParameterJdbcTemplate jdbc,
       DatabaseMetricRepository repository,
       DatabaseStorageMetrics monitor,
       MeterRegistry metrics) {

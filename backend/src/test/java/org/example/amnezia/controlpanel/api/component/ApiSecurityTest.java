@@ -42,7 +42,7 @@ class ApiSecurityTest extends BaseComponentTest {
       AppProperties properties,
       FakeVpnGateway vpn,
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           NamedParameterJdbcTemplate jdbc,
       PasswordEncoder passwords,
@@ -79,6 +79,7 @@ class ApiSecurityTest extends BaseComponentTest {
   void shouldDeliverGeneratedDeviceContractInEveryContentType() throws Exception {
     var created = request("POST", "/api/v1/devices", token, "{\"name\":\"api-laptop\"}", null);
     assertThat(created.statusCode()).isEqualTo(201);
+    assertThat(json.readTree(created.body()).get("icon").asString()).isEqualTo("LAPTOP");
     var id = json.readTree(created.body()).get("id").asString();
     var path = "/api/v1/devices/" + id + "/config";
     var plain = request("GET", path + "?format=TEXT", token, null, null);
@@ -111,6 +112,131 @@ class ApiSecurityTest extends BaseComponentTest {
         .isEqualTo(400);
   }
 
+  @Test
+  void shouldPersistDeviceNameAndIconWithoutChangingVpnKeysOrConfiguration() throws Exception {
+    var created =
+        request("POST", "/api/v1/devices", token, "{\"name\":\"Phone\",\"icon\":\"PHONE\"}", null);
+    assertThat(created.statusCode()).isEqualTo(201);
+    var id = UUID.fromString(json.readTree(created.body()).get("id").asString());
+    var before = devices.find(id).orElseThrow();
+    assertThat(before.icon())
+        .isEqualTo(org.example.amnezia.controlpanel.api.persistence.model.Device.Icon.PHONE);
+    var originalVpn = vpn.config;
+    var path = "/api/v1/devices/" + id;
+    var originalClientConfig =
+        request("GET", path + "/config?format=TEXT", token, null, null).body();
+    var update =
+        request("PATCH", path, token, "{\"name\":\"Домашний роутер\",\"icon\":\"ROUTER\"}", null);
+    assertThat(update.statusCode()).isEqualTo(200);
+    assertThat(json.readTree(update.body()).get("name").asString()).isEqualTo("Домашний роутер");
+    assertThat(json.readTree(update.body()).get("icon").asString()).isEqualTo("ROUTER");
+    var after = devices.find(id).orElseThrow();
+    assertThat(after.id()).isEqualTo(before.id());
+    assertThat(after.userId()).isEqualTo(before.userId());
+    assertThat(after.vpnIp()).isEqualTo(before.vpnIp());
+    assertThat(after.publicKey().equals(before.publicKey())).isTrue();
+    assertThat(after.privateKeyEncrypted().equals(before.privateKeyEncrypted())).isTrue();
+    assertThat(after.createdAt()).isEqualTo(before.createdAt());
+    assertThat(vpn.config.equals(originalVpn)).isTrue();
+    assertThat(
+            request("GET", path + "/config?format=TEXT", token, null, null)
+                .body()
+                .equals(originalClientConfig))
+        .isTrue();
+    assertThat(json.readTree(request("GET", path, token, null, null).body()).get("icon").asString())
+        .isEqualTo("ROUTER");
+    var listed =
+        json.readTree(request("GET", "/api/v1/devices", token, null, null).body())
+            .get("content")
+            .get(0);
+    assertThat(listed.get("name").asString()).isEqualTo("Домашний роутер");
+    assertThat(listed.get("icon").asString()).isEqualTo("ROUTER");
+    var adminView = request("GET", "/api/v1/admin/devices/" + id, adminToken, null, null);
+    assertThat(json.readTree(adminView.body()).get("icon").asString()).isEqualTo("ROUTER");
+    var audit =
+        request("GET", "/api/v1/admin/audit?eventType=DEVICE_UPDATED", adminToken, null, null);
+    assertThat(audit.statusCode()).isEqualTo(200);
+    assertThat(json.readTree(audit.body()).get("content").toString()).contains(id.toString());
+  }
+
+  @Test
+  void shouldRollBackDeviceMetadataWhenAuditCannotBePersisted() throws Exception {
+    var device = service.create(user, "Original");
+    var persisted = devices.find(device.id()).orElseThrow();
+    var originalVpn = vpn.config;
+    jdbc.update(TestQuery.BLOCK_DEVICE_UPDATE_AUDIT.query(), new MapSqlParameterSource());
+    try {
+      var response =
+          request(
+              "PATCH",
+              "/api/v1/devices/" + device.id(),
+              token,
+              "{\"name\":\"Should roll back\",\"icon\":\"PHONE\"}",
+              null);
+      assertThat(response.statusCode()).isEqualTo(409);
+      assertThat(devices.find(device.id())).contains(persisted);
+      assertThat(vpn.config.equals(originalVpn)).isTrue();
+    } finally {
+      jdbc.update(TestQuery.UNBLOCK_DEVICE_UPDATE_AUDIT.query(), new MapSqlParameterSource());
+    }
+  }
+
+  @Test
+  void shouldProtectDeviceUpdatesAndAllowAdminMetadataChangesWhileVpnIsUnavailable()
+      throws Exception {
+    var device = service.create(user, "Original");
+    var path = "/api/v1/devices/" + device.id();
+    var body = "{\"name\":\"Updated\",\"icon\":\"TABLET\"}";
+    assertThat(request("PATCH", path, null, body, null).statusCode()).isEqualTo(401);
+    assertThat(request("PATCH", path, jwt.issue(other), body, null).statusCode()).isEqualTo(404);
+    assertThat(
+            request("PATCH", "/api/v1/devices/" + UUID.randomUUID(), token, body, null)
+                .statusCode())
+        .isEqualTo(404);
+    assertThat(devices.find(device.id()).orElseThrow().name()).isEqualTo("Original");
+    var originalVpn = vpn.config;
+    vpn.failure = FakeVpnGateway.Failure.SSH;
+    var adminUpdate = request("PATCH", path, adminToken, body, null);
+    assertThat(adminUpdate.statusCode()).isEqualTo(200);
+    assertThat(json.readTree(adminUpdate.body()).get("status").asString()).isEqualTo("UNKNOWN");
+    assertThat(devices.find(device.id()).orElseThrow().name()).isEqualTo("Updated");
+    assertThat(vpn.config.equals(originalVpn)).isTrue();
+    users.status(user, User.Status.DISABLED, Instant.now());
+    assertThat(request("PATCH", path, token, body, null).statusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void shouldRejectInvalidDeviceMetadataWithoutPersistingChanges() throws Exception {
+    var device = service.create(user, "Original");
+    var path = "/api/v1/devices/" + device.id();
+    for (var name : List.of("", "   ", "a".repeat(101))) {
+      var body = json.writeValueAsString(java.util.Map.of("name", name, "icon", "LAPTOP"));
+      assertThat(request("PATCH", path, token, body, null).statusCode()).isEqualTo(400);
+    }
+    for (var body :
+        List.of(
+            "{\"name\":\"Updated\"}",
+            "{\"name\":\"Updated\",\"icon\":null}",
+            "{\"name\":\"Updated\",\"icon\":\"INVALID\"}",
+            "{\"icon\":\"LAPTOP\"}")) {
+      var invalid = request("PATCH", path, token, body, null);
+      assertThat(invalid.statusCode()).isEqualTo(400);
+      assertThat(json.readTree(invalid.body()).has("code")).isTrue();
+    }
+    assertThat(devices.find(device.id()).orElseThrow().name()).isEqualTo("Original");
+    assertThat(devices.find(device.id()).orElseThrow().icon())
+        .isEqualTo(org.example.amnezia.controlpanel.api.persistence.model.Device.Icon.LAPTOP);
+    assertThat(
+            request(
+                    "POST",
+                    "/api/v1/devices",
+                    token,
+                    "{\"name\":\"New\",\"icon\":\"INVALID\"}",
+                    null)
+                .statusCode())
+        .isEqualTo(400);
+  }
+
   private final int port;
   private final UserRepository users;
   private final DeviceRepository devices;
@@ -139,6 +265,20 @@ class ApiSecurityTest extends BaseComponentTest {
             null);
     assertThat(response.statusCode()).isEqualTo(400);
     assertThat(response.body()).doesNotContain(password);
+  }
+
+  @Test
+  void shouldExposeDatabaseSummaryWhenVpnIsUnavailableAndRestrictItToAdmins() throws Exception {
+    vpn.failure = FakeVpnGateway.Failure.SSH;
+    var response = request("GET", "/api/v1/admin/dashboard/summary", adminToken, null, null);
+    assertThat(response.statusCode()).isEqualTo(200);
+    var body = json.readTree(response.body());
+    assertThat(body.get("usersTotal").asLong()).isEqualTo(users.count());
+    assertThat(body.get("devicesTotal").asLong()).isEqualTo(0);
+    assertThat(request("GET", "/api/v1/admin/dashboard/summary", token, null, null).statusCode())
+        .isEqualTo(403);
+    assertThat(request("GET", "/api/v1/admin/dashboard/summary", null, null, null).statusCode())
+        .isEqualTo(401);
   }
 
   @BeforeEach
@@ -314,5 +454,177 @@ class ApiSecurityTest extends BaseComponentTest {
             .build();
     assertThat(client.send(request, HttpResponse.BodyHandlers.ofString()).statusCode())
         .isEqualTo(403);
+  }
+
+  @Test
+  void shouldRenameCurrentUserAndRejectCollisionsWithoutChangingOtherAccounts() throws Exception {
+    var before = users.find(user).orElseThrow();
+    var changed = "renamed-" + user;
+    var path = "/api/v1/auth/me/nickname";
+    var body = json.writeValueAsString(new AuthDtos.UpdateNickname(changed));
+    assertThat(request("PATCH", path, null, body, null).statusCode()).isEqualTo(401);
+    assertThat(request("PATCH", path, token, "{\"nickname\":\"  \"}", null).statusCode())
+        .isEqualTo(400);
+    var result = request("PATCH", path, token, body, null);
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(json.readTree(result.body()).get("nickname").asString()).isEqualTo(changed);
+    var after = users.find(user).orElseThrow();
+    assertThat(after.id()).isEqualTo(before.id());
+    assertThat(after.internalName()).isEqualTo(before.internalName());
+    assertThat(after.passwordHash().equals(before.passwordHash())).isTrue();
+    var collision = users.find(other).orElseThrow().nickname();
+    assertThat(
+            request(
+                    "PATCH",
+                    path,
+                    token,
+                    json.writeValueAsString(new AuthDtos.UpdateNickname(collision)),
+                    null)
+                .statusCode())
+        .isEqualTo(409);
+    assertThat(users.find(user).orElseThrow().nickname()).isEqualTo(changed);
+    assertThat(users.find(other).orElseThrow().nickname()).isEqualTo(collision);
+    assertThat(
+            request(
+                    "POST",
+                    "/api/v1/auth/login",
+                    null,
+                    json.writeValueAsString(
+                        new AuthDtos.Credentials(before.nickname(), "strong-test-password")),
+                    null)
+                .statusCode())
+        .isEqualTo(401);
+    assertThat(
+            request(
+                    "POST",
+                    "/api/v1/auth/login",
+                    null,
+                    json.writeValueAsString(
+                        new AuthDtos.Credentials(changed, "strong-test-password")),
+                    null)
+                .statusCode())
+        .isEqualTo(200);
+    users.status(user, User.Status.DISABLED, Instant.now());
+    assertThat(request("PATCH", path, token, body, null).statusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void shouldChangePasswordAndRotateAllRefreshSessions() throws Exception {
+    var credentials =
+        json.writeValueAsString(new AuthDtos.Credentials(nickname, "strong-test-password"));
+    var firstLogin = request("POST", "/api/v1/auth/login", null, credentials, null);
+    var secondLogin = request("POST", "/api/v1/auth/login", null, credentials, null);
+    var firstCookie = firstLogin.headers().firstValue("set-cookie").orElseThrow().split(";")[0];
+    var secondCookie = secondLogin.headers().firstValue("set-cookie").orElseThrow().split(";")[0];
+    var originalHash = users.find(user).orElseThrow().passwordHash();
+    var path = "/api/v1/auth/me/password";
+    var rejected =
+        request(
+            "PATCH",
+            path,
+            token,
+            json.writeValueAsString(
+                new AuthDtos.ChangePassword("wrong-test-password", "new-strong-password")),
+            firstCookie);
+    assertThat(rejected.statusCode()).isEqualTo(400);
+    assertThat(json.readTree(rejected.body()).get("code").asString())
+        .isEqualTo("CURRENT_PASSWORD_INVALID");
+    assertThat(users.find(user).orElseThrow().passwordHash().equals(originalHash)).isTrue();
+    assertThat(request("GET", "/api/v1/auth/me", token, null, null).statusCode()).isEqualTo(200);
+    var otherRefresh = request("POST", "/api/v1/auth/refresh", null, null, secondCookie);
+    assertThat(otherRefresh.statusCode()).isEqualTo(200);
+    var otherFreshCookie =
+        otherRefresh.headers().firstValue("set-cookie").orElseThrow().split(";")[0];
+    var valid =
+        json.writeValueAsString(
+            new AuthDtos.ChangePassword("strong-test-password", "new-strong-password"));
+    assertThat(request("PATCH", path, null, valid, null).statusCode()).isEqualTo(401);
+    assertThat(
+            request(
+                    "PATCH",
+                    path,
+                    token,
+                    "{\"currentPassword\":\"strong-test-password\",\"newPassword\":\"short\"}",
+                    null)
+                .statusCode())
+        .isEqualTo(400);
+    var result = request("PATCH", path, token, valid, firstCookie);
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(result.body()).doesNotContain("password", "refreshToken");
+    var cookie = result.headers().firstValue("set-cookie").orElseThrow();
+    assertThat(cookie).contains("HttpOnly", "SameSite=Strict");
+    assertThat(request("POST", "/api/v1/auth/refresh", null, null, firstCookie).statusCode())
+        .isEqualTo(401);
+    assertThat(request("POST", "/api/v1/auth/refresh", null, null, otherFreshCookie).statusCode())
+        .isEqualTo(401);
+    assertThat(
+            request("POST", "/api/v1/auth/refresh", null, null, cookie.split(";")[0]).statusCode())
+        .isEqualTo(200);
+    assertThat(
+            passwords.matches("new-strong-password", users.find(user).orElseThrow().passwordHash()))
+        .isTrue();
+    assertThat(request("POST", "/api/v1/auth/login", null, credentials, null).statusCode())
+        .isEqualTo(401);
+    assertThat(
+            request(
+                    "POST",
+                    "/api/v1/auth/login",
+                    null,
+                    json.writeValueAsString(
+                        new AuthDtos.Credentials(nickname, "new-strong-password")),
+                    null)
+                .statusCode())
+        .isEqualTo(200);
+  }
+
+  @Test
+  void shouldPersistTvIconOnCreateAndUpdate() throws Exception {
+    var response =
+        request("POST", "/api/v1/devices", token, "{\"name\":\"TV\",\"icon\":\"TV\"}", null);
+    assertThat(response.statusCode()).isEqualTo(201);
+    var id = json.readTree(response.body()).get("id").asString();
+    assertThat(json.readTree(response.body()).get("icon").asString()).isEqualTo("TV");
+    var result =
+        request(
+            "PATCH",
+            "/api/v1/devices/" + id,
+            token,
+            "{\"name\":\"Living room TV\",\"icon\":\"TV\"}",
+            null);
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(devices.find(UUID.fromString(id)).orElseThrow().icon())
+        .isEqualTo(org.example.amnezia.controlpanel.api.persistence.model.Device.Icon.TV);
+  }
+
+  @Test
+  void shouldRollBackProfileChangesAndSessionRevocationWhenAuditFails() throws Exception {
+    var credentials =
+        json.writeValueAsString(new AuthDtos.Credentials(nickname, "strong-test-password"));
+    var login = request("POST", "/api/v1/auth/login", null, credentials, null);
+    var cookie = login.headers().firstValue("set-cookie").orElseThrow().split(";")[0];
+    var originalHash = users.find(user).orElseThrow().passwordHash();
+    jdbc.update(TestQuery.BLOCK_PROFILE_AUDIT.query(), new MapSqlParameterSource());
+    try {
+      assertThat(
+              request(
+                      "PATCH",
+                      "/api/v1/auth/me/nickname",
+                      token,
+                      json.writeValueAsString(new AuthDtos.UpdateNickname("rollback-" + user)),
+                      null)
+                  .statusCode())
+          .isEqualTo(409);
+      assertThat(users.find(user).orElseThrow().nickname()).isEqualTo(nickname);
+      var body =
+          json.writeValueAsString(
+              new AuthDtos.ChangePassword("strong-test-password", "new-strong-password"));
+      assertThat(request("PATCH", "/api/v1/auth/me/password", token, body, cookie).statusCode())
+          .isEqualTo(409);
+      assertThat(users.find(user).orElseThrow().passwordHash().equals(originalHash)).isTrue();
+      assertThat(request("POST", "/api/v1/auth/refresh", null, null, cookie).statusCode())
+          .isEqualTo(200);
+    } finally {
+      jdbc.update(TestQuery.UNBLOCK_PROFILE_AUDIT.query(), new MapSqlParameterSource());
+    }
   }
 }

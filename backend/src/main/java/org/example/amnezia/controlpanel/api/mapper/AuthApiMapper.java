@@ -2,10 +2,12 @@ package org.example.amnezia.controlpanel.api.mapper;
 
 import org.example.amnezia.controlpanel.api.dto.AuthDtos;
 import org.example.amnezia.controlpanel.api.rest.model.AuthResponse;
+import org.example.amnezia.controlpanel.api.rest.model.ChangePasswordRequest;
 import org.example.amnezia.controlpanel.api.rest.model.CurrentUser;
 import org.example.amnezia.controlpanel.api.rest.model.LoginRequest;
 import org.example.amnezia.controlpanel.api.rest.model.RegisterUserRequest;
 import org.example.amnezia.controlpanel.api.rest.model.TokenResponse;
+import org.example.amnezia.controlpanel.api.rest.model.UpdateNicknameRequest;
 import org.mapstruct.Mapper;
 
 @Mapper(config = ApiMapperConfig.class)
@@ -17,6 +19,10 @@ public interface AuthApiMapper {
   AuthResponse response(AuthDtos.AuthResponse result);
 
   CurrentUser user(AuthDtos.CurrentUser user);
+
+  AuthDtos.UpdateNickname nickname(UpdateNicknameRequest request);
+
+  AuthDtos.ChangePassword password(ChangePasswordRequest request);
 
   TokenResponse token(AuthDtos.TokenResponse token);
 }

@@ -39,6 +39,8 @@ public final class AdminDtos {
 
   public record Infrastructure(String application, String database, String ssh, String vpn) {}
 
+  public record DashboardSummary(long usersTotal, long devicesTotal) {}
+
   public record Dashboard(
       long usersTotal,
       long devicesTotal,

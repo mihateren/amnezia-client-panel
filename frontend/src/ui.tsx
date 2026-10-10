@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useId,
   useState,
   type ReactNode,
 } from "react";
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from "lucide-react";
 export const date = (v?: string | null) =>
   v
@@ -30,6 +32,7 @@ const labels: Record<string, string> = {
   ONLINE: "В сети",
   OFFLINE: "Не в сети",
   UNKNOWN: "Неизвестно",
+  OUTDATED: "Устарел после переезда",
   ACTIVE: "Активен",
   DISABLED: "Отключён",
   UP: "Работает",
@@ -100,11 +103,15 @@ export function ResourceState({
   loading,
   error,
   empty,
+  emptyTitle = "Пока ничего нет",
+  emptyDescription = "Здесь появятся новые данные.",
   reload,
 }: {
   loading: boolean;
   error: unknown;
   empty?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
   reload: () => void;
 }) {
   return (
@@ -122,9 +129,10 @@ export function ResourceState({
         </button>
       )}
       {!loading && !error && empty && (
-        <div className="empty">
-          <span>Пока здесь пусто</span>
-          <p>Новые записи появятся здесь.</p>
+        <div className="empty" role="status">
+          <Search size={28} aria-hidden="true" />
+          <span>{emptyTitle}</span>
+          <p>{emptyDescription}</p>
         </div>
       )}
     </>
@@ -176,6 +184,7 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
     ref.current?.showModal();
@@ -184,16 +193,25 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target !== e.currentTarget) return;
+        const bounds = e.currentTarget.getBoundingClientRect();
+        if (
+          e.clientX < bounds.left ||
+          e.clientX > bounds.right ||
+          e.clientY < bounds.top ||
+          e.clientY > bounds.bottom
+        )
+          onClose();
       }}
     >
       <div className="modal-head">
-        <h2>{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button aria-label="Закрыть" onClick={onClose}>
           <X size={20} />
         </button>
@@ -280,5 +298,79 @@ export function Confirm({
         </button>
       </div>
     </Modal>
+  );
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div
+      className="dashboard-skeleton"
+      role="status"
+      aria-label="Загрузка обзора сети"
+    >
+      <div className="stats" aria-hidden="true">
+        {[0, 1].map((i) => (
+          <div className="stat" key={i}>
+            <div className="skeleton skeleton-label" />
+            <div className="skeleton skeleton-number" />
+            <div className="skeleton skeleton-label" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+export function EventsSkeleton() {
+  return (
+    <div role="status" aria-label="Загрузка последних событий" aria-busy="true">
+      {[0, 1, 2].map((i) => (
+        <div className="skeleton skeleton-row" key={i} aria-hidden="true" />
+      ))}
+    </div>
+  );
+}
+
+export function DevicesSkeleton() {
+  return (
+    <div className="device-grid" role="status" aria-label="Загрузка устройств">
+      {[0, 1, 2].map((i) => (
+        <div className="device-card" key={i} aria-hidden="true">
+          <div className="skeleton skeleton-device-icon" />
+          <div className="skeleton skeleton-device-name" />
+          <div className="device-actions">
+            <div className="skeleton skeleton-device-button" />
+            <div className="skeleton skeleton-device-action" />
+            <div className="skeleton skeleton-device-action" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+export function VpnSkeleton() {
+  return (
+    <div
+      className="panel vpn-detail"
+      role="status"
+      aria-label="Загрузка VPN-сервера"
+    >
+      <div aria-hidden="true">
+        <div className="skeleton skeleton-vpn-icon" />
+        <div className="skeleton skeleton-device-name" />
+        <div className="skeleton skeleton-vpn-badge" />
+        <dl>
+          {[0, 1, 2].map((i) => (
+            <div className="skeleton-vpn-row" key={i}>
+              <dt>
+                <div className="skeleton" />
+              </dt>
+              <dd>
+                <div className="skeleton" />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
   );
 }

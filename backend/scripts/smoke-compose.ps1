@@ -11,6 +11,8 @@ $null = New-Item -ItemType Directory -Path $temporaryPath -Force
 $envFile = Join-Path $temporaryPath 'smoke.env'
 $keyFile = Join-Path $temporaryPath 'ssh_key'
 $hostsFile = Join-Path $temporaryPath 'known_hosts'
+$telegramFile = Join-Path $temporaryPath 'telegram.env'
+[IO.File]::WriteAllText($telegramFile, "TELEGRAM_BOT_TOKEN=0:smoke-test-invalid`nTELEGRAM_CHAT_ID=1`n")
 [IO.File]::WriteAllText($keyFile, '# Disposable startup test; no real VDS credentials')
 [IO.File]::WriteAllText($hostsFile, '')
 function Random-Hex { [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)) }
@@ -33,6 +35,7 @@ $settings = [ordered]@{
     PROMETHEUS_PORT = '0'
     GRAFANA_PORT = '0'
     PANEL_ENV_FILE = $envFile.Replace('\','/')
+    TELEGRAM_ENV_FILE = $telegramFile.Replace('\','/')
 }
 # Preserve the invoking shell's environment and prevent it overriding disposable credentials.
 $previous = @{}
@@ -92,7 +95,9 @@ try {
         'jvm_memory_used_bytes','process_memory_rss_bytes','process_cpu_usage','jvm_threads_live_threads',
         'hikaricp_connections_active','hikaricp_connections_idle','hikaricp_connections_pending',
         'hikaricp_connections_acquire_seconds_count','hikaricp_connections_timeout_total',
-        'sqlite_database_allocated_bytes','sqlite_table_allocated_bytes','sqlite_table_payload_bytes')) {
+        'sqlite_database_allocated_bytes','sqlite_table_allocated_bytes','sqlite_table_payload_bytes',
+        'sqlite_database_up','sqlite_database_checked_timestamp_seconds','sqlite_query_seconds_bucket',
+        'http_server_requests_seconds_bucket')) {
         Assert-PrometheusQuery $metric -RequireData
     }
     $grafanaAuth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($settings.GRAFANA_ADMIN_USER+':'+$settings.GRAFANA_ADMIN_PASSWORD))
@@ -101,23 +106,47 @@ try {
     for ($attempt=0;$attempt -lt 30;$attempt++) {
         try {
             $datasource = Invoke-RestMethod "$grafanaUrl/api/datasources/uid/acp-prometheus" -Headers $grafanaHeaders -TimeoutSec 3
-            $dashboard = Invoke-RestMethod "$grafanaUrl/apis/dashboard.grafana.app/v2beta1/namespaces/default/dashboards/amnezia-control-panel" -Headers $grafanaHeaders -TimeoutSec 3
+            $dashboard = Invoke-RestMethod "$grafanaUrl/api/dashboards/uid/amnezia-control-panel" -Headers $grafanaHeaders -TimeoutSec 3
             break
         } catch { Start-Sleep -Seconds 2 }
     }
-    if ($null -eq $dashboard -or $dashboard.spec.title -ne 'Amnezia Control Panel') {
+    if ($null -eq $dashboard -or $dashboard.dashboard.title -ne 'Application Overview') {
         throw 'Grafana dashboard was not provisioned'
     }
     if ($datasource.url -ne 'http://prometheus:9090') { throw 'Incorrect Grafana datasource URL' }
-    if ($dashboard.spec.layout.kind -ne 'TabsLayout' -or $dashboard.spec.layout.spec.tabs.Count -ne 2) {
-        throw 'Grafana application/VPN tabs were not provisioned'
+    $expectedDashboards = @{
+        'amnezia-control-panel' = 'Application Overview'
+        'amnezia-database' = 'Database Monitoring'
+        'amnezia-vpn' = 'VPN Monitoring'
     }
-    foreach ($element in $dashboard.spec.elements.PSObject.Properties) {
-        foreach ($query in $element.Value.spec.data.spec.queries) {
-            $target = $query.spec.query.spec
-            Assert-PrometheusQuery ($target.expr.Replace('$__rate_interval','1m').Replace('$http_route', '.*'))
+    $provisioned = Invoke-RestMethod "$grafanaUrl/api/search?tag=amnezia&type=dash-db" -Headers $grafanaHeaders
+    if ($provisioned.Count -ne 3) { throw 'Expected exactly three Amnezia dashboards' }
+    foreach ($uid in $expectedDashboards.Keys) {
+        $loaded = Invoke-RestMethod "$grafanaUrl/api/dashboards/uid/$uid" -Headers $grafanaHeaders
+        if ($loaded.dashboard.title -ne $expectedDashboards[$uid] -or -not $loaded.meta.provisioned) {
+            throw "Dashboard not provisioned: $uid"
+        }
+        if ($loaded.dashboard.links.Count -ne 3) { throw "Missing navigation: $uid" }
+        $allPanels = @($loaded.dashboard.panels) + @($loaded.dashboard.panels | ForEach-Object { $_.panels })
+        foreach ($panel in $allPanels) {
+            foreach ($target in $panel.targets) {
+                $expression = $target.expr.Replace('$__rate_interval','1m').Replace('$job','amnezia-control-panel').Replace('$instance','backend:8080').Replace('$uri','.*').Replace('$peer','.*').Replace('$handshake_seconds','180')
+                Assert-PrometheusQuery $expression
+                $missing = $expression.Replace('backend:8080','missing:8080')
+                $response = Invoke-RestMethod "$prometheusUrl/api/v1/query?query=$([Uri]::EscapeDataString($missing))"
+                if ($response.data.result.Count -ne 0) { throw "False data for absent instance: $($panel.title)" }
+            }
         }
     }
+    Write-Output 'PASS: three provisioned dashboards, navigation, all PromQL queries and absent-instance behavior'
+    $alertRules = Invoke-RestMethod "$grafanaUrl/api/v1/provisioning/alert-rules" -Headers $grafanaHeaders
+    if (@($alertRules | Where-Object { $_.uid -like 'acp-*' }).Count -ne 11) { throw 'Missing alert rules' }
+    foreach ($rule in $alertRules) {
+        Assert-PrometheusQuery $rule.data[0].model.expr
+    }
+    $contacts = Invoke-RestMethod "$grafanaUrl/api/v1/provisioning/contact-points" -Headers $grafanaHeaders
+    if (@($contacts | Where-Object { $_.uid -eq 'acp-telegram' -and $_.type -eq 'telegram' }).Count -ne 1) { throw 'Missing Telegram receiver' }
+    Write-Output 'PASS: alert rules and Telegram contact point provisioned with disposable invalid test credentials'
     $keyMode = & docker @composeArgs exec -T backend stat -c %a /tmp/panel-ssh/id_key
     if ($LASTEXITCODE -ne 0 -or $keyMode.Trim() -ne '600') { throw 'Incorrect SSH key permissions' }
     & docker @composeArgs restart backend

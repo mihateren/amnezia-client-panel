@@ -9,20 +9,35 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.example.amnezia.controlpanel.api.config.AppProperties;
 import org.example.amnezia.controlpanel.api.exception.ApiException;
+import org.example.amnezia.controlpanel.api.persistence.model.VpnServer;
+import org.example.amnezia.controlpanel.api.service.VpnServerSettings;
 import org.springframework.stereotype.Component;
 
 @Component
 public class OpenSshExecutor implements SshExecutor {
+  private final VpnServerSettings servers;
   private final AppProperties config;
   private final MeterRegistry metrics;
 
-  public OpenSshExecutor(AppProperties config, MeterRegistry metrics) {
+  public OpenSshExecutor(AppProperties config, MeterRegistry metrics, VpnServerSettings servers) {
+    this.servers = servers;
     this.config = config;
     this.metrics = metrics;
   }
 
   @Override
   public String execute(String script) {
+    var server = servers.current();
+    try (var credentials =
+        SshCredentialFiles.create(config.ssh(), server, servers.privateKey(server))) {
+      return execute(script, server, credentials);
+    } catch (IOException e) {
+      metrics.counter("ssh_errors").increment();
+      throw ApiException.ssh();
+    }
+  }
+
+  private String execute(String script, VpnServer server, SshCredentialFiles credentials) {
     var ssh = config.ssh();
     var args =
         new ArrayList<>(
@@ -46,12 +61,12 @@ public class OpenSshExecutor implements SshExecutor {
                 "-o",
                 "ServerAliveCountMax=2",
                 "-o",
-                "UserKnownHostsFile=" + ssh.knownHosts(),
+                "UserKnownHostsFile=" + credentials.knownHostsPath(),
                 "-i",
-                ssh.privateKey(),
+                credentials.privateKeyPath(),
                 "-p",
-                Integer.toString(ssh.port()),
-                ssh.username() + "@" + ssh.host()));
+                Integer.toString(server.sshPort()),
+                server.username() + "@" + server.ip()));
     args.add(
         ssh.container().isEmpty()
             ? "sh -s"

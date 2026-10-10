@@ -142,6 +142,68 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/auth/me/nickname:
+    patch:
+      tags: [Authentication]
+      summary: Update current user nickname
+      operationId: updateCurrentNickname
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNicknameRequest'
+      responses:
+        '200':
+          description: Updated account; password change revokes old refresh sessions and issues a new one. Existing access tokens expire normally.
+          headers:
+            Set-Cookie:
+              description: Password changes rotate the HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Nickname already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/me/password:
+    patch:
+      tags: [Authentication]
+      summary: Update current user password
+      operationId: changeCurrentPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Updated account; password change revokes old refresh sessions and issues a new one. Existing access tokens expire normally.
+          headers:
+            Set-Cookie:
+              description: Password changes rotate the HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ============================================================
   # Invitations
   # ============================================================
@@ -400,6 +462,33 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    patch:
+      tags:
+        - Devices
+      summary: Update device name and icon
+      operationId: updateMyDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceRequest'
+      responses:
+        '200':
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags:
         - Devices
@@ -634,6 +723,19 @@ paths:
   # Admin dashboard
   # ============================================================
 
+  /api/v1/admin/dashboard/summary:
+    get:
+      tags: [Admin Dashboard]
+      summary: Get database counts without waiting for VPN
+      operationId: getAdminDashboardSummary
+      responses:
+        '200':
+          description: Panel counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+
   /api/v1/admin/dashboard:
     get:
       tags:
@@ -647,6 +749,115 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardResponse'
+
+  /api/v1/vpn/migration:
+    get:
+      tags: [VPN Migration]
+      operationId: getVpnMigration
+      summary: Get migration state and the current user outdated device count
+      responses:
+        '200':
+          description: Migration state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnMigrationStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/admin/vpn/migration/start:
+    post:
+      tags: [VPN Migration]
+      operationId: startVpnMigration
+      summary: Start maintenance without stopping the VPN server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VpnMigrationRequest'
+      responses:
+        '200':
+          description: Migration state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnMigrationStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Migration state changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/vpn/migration/complete:
+    post:
+      tags: [VPN Migration]
+      operationId: completeVpnMigration
+      summary: Check the configured server and advance the VPN generation only if the IP changed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VpnMigrationRequest'
+      responses:
+        '200':
+          description: Migration state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnMigrationStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Migration state changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/vpn/server:
+    get:
+      tags: [VPN Server]
+      operationId: getVpnServerSettings
+      summary: Get current server settings without the private SSH key
+      responses:
+        '200':
+          description: Server settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnServerSettingsResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [VPN Server]
+      operationId: updateVpnServerSettings
+      summary: Save server settings during maintenance; applies without restarting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVpnServerRequest'
+      responses:
+        '200':
+          description: Settings saved; private key is never returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VpnServerSettingsResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Maintenance required or missing credentials for a changed IP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/admin/vpn:
     get:
@@ -839,6 +1050,30 @@ components:
           minLength: 8
           maxLength: 256
 
+    UpdateNicknameRequest:
+      type: object
+      required: [nickname]
+      properties:
+        nickname:
+          type: string
+          minLength: 3
+          maxLength: 64
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 256
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 256
+
     RegisterUserRequest:
       type: object
       required:
@@ -1024,6 +1259,32 @@ components:
           minLength: 1
           maxLength: 100
           example: MacBook Pro
+        icon:
+          $ref: '#/components/schemas/DeviceIcon'
+
+    UpdateDeviceRequest:
+      type: object
+      required:
+        - name
+        - icon
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        icon:
+          $ref: '#/components/schemas/DeviceIcon'
+
+    DeviceIcon:
+      type: string
+      description: Neutral device icon; existing devices and creates without an icon use LAPTOP
+      enum:
+        - DESKTOP
+        - LAPTOP
+        - PHONE
+        - TABLET
+        - ROUTER
+        - TV
 
     DeviceStatus:
       type: string
@@ -1031,22 +1292,31 @@ components:
         - ONLINE
         - OFFLINE
         - UNKNOWN
+        - OUTDATED
 
     Device:
       type: object
       required:
+        - generation
         - id
         - name
+        - icon
         - vpnIp
         - publicKey
         - status
         - createdAt
       properties:
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
         id:
           type: string
           format: uuid
         name:
           type: string
+        icon:
+          $ref: '#/components/schemas/DeviceIcon'
         vpnIp:
           type: string
           example: 10.8.0.2
@@ -1054,6 +1324,7 @@ components:
           type: string
           description: Client public key
         status:
+          description: User device reads and metadata updates use local data only and return UNKNOWN or OUTDATED; live statistics are not requested.
           $ref: '#/components/schemas/DeviceStatus'
         lastHandshakeAt:
           type:
@@ -1121,6 +1392,65 @@ components:
     # VPN
     # ----------------------------------------------------------
 
+    VpnServerSettingsResponse:
+      type: object
+      required: [ip, sshPort, username, vpnPort]
+      properties:
+        ip:
+          type: string
+          maxLength: 253
+        sshPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        username:
+          type: string
+          pattern: '^[a-zA-Z_][a-zA-Z0-9_-]*$'
+          maxLength: 64
+        hostKey:
+          type: string
+          maxLength: 8192
+          description: Public SSH host key as key-type and base64; verify via trusted channel
+        vpnPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+    UpdateVpnServerRequest:
+      allOf:
+        - $ref: '#/components/schemas/VpnServerSettingsResponse'
+        - type: object
+          properties:
+            privateKey:
+              type: string
+              writeOnly: true
+              maxLength: 32768
+              description: Private SSH key; required for a new IP; blank retains the existing key on the same IP
+    VpnMigrationRequest:
+      type: object
+      required: [generation]
+      properties:
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+    VpnMigrationStatus:
+      type: object
+      required: [generation, maintenance, outdatedDevices]
+      properties:
+        vpnUnavailable:
+          type: boolean
+          description: Cached VPN checks have repeatedly failed for at least one minute; false during maintenance.
+
+        generation:
+          type: integer
+          format: int64
+        maintenance:
+          type: boolean
+        outdatedDevices:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Number of this user's devices from all previous VPN generations
     VpnState:
       type: object
       required:
@@ -1144,6 +1474,16 @@ components:
     # Dashboard
     # ----------------------------------------------------------
 
+    DashboardSummary:
+      type: object
+      required: [usersTotal, devicesTotal]
+      properties:
+        usersTotal:
+          type: integer
+          format: int64
+        devicesTotal:
+          type: integer
+          format: int64
     DashboardResponse:
       type: object
       required:
@@ -1199,15 +1539,21 @@ components:
       enum:
         - USER_LOGIN
         - USER_LOGOUT
+        - USER_NICKNAME_CHANGED
+        - USER_PASSWORD_CHANGED
         - INVITATION_CREATED
         - INVITATION_USED
         - DEVICE_CREATED
+        - DEVICE_UPDATED
         - DEVICE_CONFIG_VIEWED
         - DEVICE_CONFIG_DOWNLOADED
         - DEVICE_DELETED
         - USER_CREATED
         - USER_DISABLED
         - USER_DELETED
+        - VPN_SERVER_UPDATED
+        - VPN_MIGRATION_STARTED
+        - VPN_MIGRATION_COMPLETED
         - ADMIN_LOGIN
 
     AuditResult:

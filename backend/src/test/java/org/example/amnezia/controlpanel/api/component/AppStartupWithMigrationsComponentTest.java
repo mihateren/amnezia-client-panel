@@ -13,7 +13,7 @@ class AppStartupWithMigrationsComponentTest extends BaseComponentTest {
   @Autowired
   AppStartupWithMigrationsComponentTest(
       @org.springframework.beans.factory.annotation.Qualifier(
-              org.example.amnezia.controlpanel.api.config.db.DatabasePins
+              org.example.amnezia.controlpanel.api.config.db.DatabaseBeans
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           NamedParameterJdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;

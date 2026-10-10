@@ -8,6 +8,7 @@ public enum DeviceQuery implements QueryHolder {
   COUNT_BY_USER_ID("sql/device/count-by-user-id.sql"),
   COUNT("sql/device/count.sql"),
   INSERT("sql/device/insert.sql"),
+  UPDATE_METADATA("sql/device/update-metadata.sql"),
   DELETE_LINKS("sql/device/delete-links.sql"),
   DELETE("sql/device/delete.sql");
   private final String sql;

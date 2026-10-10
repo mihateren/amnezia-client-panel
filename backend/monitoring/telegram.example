@@ -1,0 +1,4 @@
+# Copy to secrets/telegram.env. Do not commit the real token.
+TELEGRAM_BOT_TOKEN=
+# Telegram Bot API ID, normally -100... for channels. Bot must be a channel admin.
+TELEGRAM_CHAT_ID=

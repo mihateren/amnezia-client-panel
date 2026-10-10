@@ -1,126 +1,213 @@
+import { useVpnMigration } from "./vpn-migration";
+import { useEffect, useRef } from "react";
+import { UserPicker } from "./user-picker";
 import QRCode from "qrcode";
 import { amneziaLink, amneziaQrChunks } from "./amnezia";
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   Plus,
   Monitor,
+  Laptop,
+  Smartphone,
+  Tablet,
+  Router,
+  Tv,
   Download,
   QrCode,
   FileKey,
   Trash2,
-  ArrowDownLeft,
-  ArrowUpRight,
+  Pencil,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { download, post, query, request, type Schema } from "./api";
 import {
   Badge,
   bytes,
-  Confirm,
   date,
+  Confirm,
   ErrorBox,
   Modal,
   Pagination,
   ResourceState,
+  DevicesSkeleton,
   useResource,
 } from "./ui";
-type Device = Schema<"Device"> & { owner?: Schema<"AdminUser"> };
+
+type DeviceIcon = "DESKTOP" | "LAPTOP" | "PHONE" | "TABLET" | "ROUTER" | "TV";
+type Device = Schema<"Device"> & {
+  icon?: DeviceIcon;
+  owner?: Schema<"AdminUser">;
+};
+const icons = {
+  DESKTOP: Monitor,
+  LAPTOP: Laptop,
+  PHONE: Smartphone,
+  TABLET: Tablet,
+  ROUTER: Router,
+  TV: Tv,
+};
+const iconLabels: Record<DeviceIcon, string> = {
+  DESKTOP: "Компьютер",
+  LAPTOP: "Ноутбук",
+  PHONE: "Телефон",
+  TABLET: "Планшет",
+  ROUTER: "Роутер",
+  TV: "Телевизор",
+};
+function DeviceSymbol({ icon }: { icon?: DeviceIcon }) {
+  const Icon = icons[icon || "LAPTOP"] || Laptop;
+  return <Icon aria-hidden="true" />;
+}
+function IconPicker({
+  value,
+  onChange,
+}: {
+  value: DeviceIcon;
+  onChange: (icon: DeviceIcon) => void;
+}) {
+  return (
+    <fieldset className="icon-picker">
+      <legend>Значок</legend>
+      <div className="icon-options">
+        {(Object.keys(icons) as DeviceIcon[]).map((icon) => (
+          <button
+            className="icon-choice"
+            key={icon}
+            type="button"
+            aria-pressed={value === icon}
+            onClick={() => onChange(icon)}
+          >
+            <DeviceSymbol icon={icon} />
+            <span>{iconLabels[icon]}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 export function Devices({ admin = false }: { admin?: boolean }) {
+  const migration = useVpnMigration();
+  const blocked = !migration.data || migration.data.maintenance;
   const [page, setPage] = useState(0);
-  const [status, setStatus] = useState("");
   const [owner, setOwner] = useState("");
   const [create, setCreate] = useState(false);
   const [selected, setSelected] = useState<Device>();
+  const [editing, setEditing] = useState<Device>();
   const [deleting, setDeleting] = useState<Device>();
   const base = admin ? "/admin/devices" : "/devices";
   const r = useResource<Schema<"AdminDevicePage">>(
-    `${base}?${query({ page, size: 12, status: admin ? status : undefined, userId: admin ? owner : undefined })}`,
-    30000,
+    base + "?" + query({ page, size: 12, userId: admin ? owner : undefined }),
   );
+  const previousMigration = useRef(migration.data);
+  useEffect(() => {
+    const previous = previousMigration.current;
+    const current = migration.data;
+    previousMigration.current = current;
+    if (
+      previous &&
+      current &&
+      (previous.generation !== current.generation ||
+        previous.maintenance !== current.maintenance)
+    ) {
+      void r.reload();
+    }
+  }, [migration.data, r.reload]);
   return (
     <>
-      <header className="page-heading">
-        <div>
-          <span className="eyebrow">ПОДКЛЮЧЕНИЯ</span>
-          <h1>{admin ? "Все устройства" : "Мои устройства"}</h1>
-          <p>
-            {admin
-              ? "Подключения пользователей вашей сети."
-              : "Добавьте устройство и импортируйте конфигурацию в AmneziaVPN."}
-          </p>
+      <div className="page-heading">
+        <h1>{admin ? "Все устройства" : "Мои устройства"}</h1>
+        <div className="device-toolbar">
+          <Link className="button-link" to="/guide">
+            <BookOpen size={17} />
+            Как подключиться
+          </Link>
+          {!admin && (
+            <button
+              className="primary"
+              disabled={blocked}
+              onClick={() => setCreate(true)}
+            >
+              <Plus size={17} />
+              Добавить устройство
+            </button>
+          )}
         </div>
-        {!admin && (
-          <button className="primary" onClick={() => setCreate(true)}>
-            <Plus size={18} />
-            Добавить устройство
-          </button>
-        )}
-      </header>
+      </div>
       {admin && (
         <div className="filters">
-          <label>
-            Статус
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(0);
-              }}
-            >
-              <option value="">Все статусы</option>
-              {["ONLINE", "OFFLINE", "UNKNOWN"].map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            ID пользователя
-            <input
-              value={owner}
-              onChange={(e) => {
-                setOwner(e.target.value);
-                setPage(0);
-              }}
-              placeholder="UUID владельца"
-            />
-          </label>
+          <UserPicker
+            searchable
+            value={owner}
+            onChange={(id) => {
+              setOwner(id);
+              setPage(0);
+            }}
+          />
         </div>
       )}
-      <ResourceState {...r} empty={!r.data?.content.length} />
+      {!r.data && r.loading && <DevicesSkeleton />}
+      <ResourceState
+        {...r}
+        loading={false}
+        empty={!r.loading && !!r.data && !r.data.content.length}
+        emptyTitle="Устройств пока нет"
+        emptyDescription={
+          admin
+            ? "Выберите другого пользователя или сбросьте фильтр."
+            : "Добавьте устройство, чтобы подключить VPN."
+        }
+      />
       <div className="device-grid">
         {r.data?.content.map((d) => (
           <article className="device-card" key={d.id}>
-            <div className="card-top">
-              <span className="device-icon">
-                <Monitor />
-              </span>
-              <Badge value={d.status} />
-            </div>
+            <span className="device-icon">
+              <DeviceSymbol icon={d.icon} />
+            </span>
             <h2>
               <button className="text-button" onClick={() => setSelected(d)}>
                 {d.name}
               </button>
             </h2>
-            <span className="mono">{d.vpnIp}</span>
-            {admin && <p>Владелец: {d.owner?.nickname || "—"}</p>}
-            <div className="traffic">
-              <span>
-                <ArrowDownLeft size={16} />
-                {bytes(d.rxBytes)}
-                <small>Получено сервером</small>
-              </span>
-              <span>
-                <ArrowUpRight size={16} />
-                {bytes(d.txBytes)}
-                <small>Отправлено сервером</small>
-              </span>
-            </div>
-            <div className="card-bottom">
-              <button onClick={() => setSelected(d)}>
-                {admin ? "Подробнее" : "Подключить"}
-                <span>↗</span>
+            {(d.status === "OUTDATED" ||
+              (migration.data && d.generation < migration.data.generation)) && (
+              <p className="outdated-label">
+                <AlertTriangle size={16} aria-hidden="true" />
+                Устарел после переезда
+              </p>
+            )}
+            {admin && (
+              <p className="device-owner">
+                {d.owner?.internalName || d.owner?.nickname || "—"}
+              </p>
+            )}
+            <div className="device-actions">
+              <button
+                className={
+                  admin
+                    ? "connect-button browse-button"
+                    : "primary connect-button"
+                }
+                onClick={() => setSelected(d)}
+              >
+                {admin || d.status === "OUTDATED" ? "Открыть" : "Подключить"}
               </button>
               <button
-                aria-label={`Удалить ${d.name}`}
+                className="icon-button"
+                aria-label={"Изменить " + d.name}
+                onClick={() => setEditing(d)}
+              >
+                <Pencil size={17} />
+              </button>
+              <button
+                className="icon-button destructive"
+                disabled={blocked}
+                aria-label={"Удалить " + d.name}
                 onClick={() => setDeleting(d)}
               >
                 <Trash2 size={17} />
@@ -129,19 +216,10 @@ export function Devices({ admin = false }: { admin?: boolean }) {
           </article>
         ))}
       </div>
-      {r.data && <Pagination {...r.data} onChange={setPage} />}
-      <aside className="hint">
-        <Shield />{" "}
-        <div>
-          <strong>Как подключиться?</strong>
-          <p>
-            Создайте устройство, скачайте файл конфигурации или отсканируйте
-            QR-код в клиенте AmneziaVPN. Для каждого устройства используйте
-            отдельную конфигурацию.
-          </p>
-        </div>
-      </aside>
-      {create && (
+      {!!r.data?.content.length && (
+        <Pagination {...r.data} onChange={setPage} />
+      )}
+      {create && !blocked && (
         <CreateDevice
           onClose={() => setCreate(false)}
           onDone={(d) => {
@@ -158,39 +236,54 @@ export function Devices({ admin = false }: { admin?: boolean }) {
           onClose={() => setSelected(undefined)}
         />
       )}
-      {deleting && (
-        <Confirm
-          title={`Удалить «${deleting.name}»?`}
-          description="Устройство потеряет доступ к VPN. Его конфигурация и ссылки импорта перестанут работать."
-          action={() => request(`${base}/${deleting.id}`, { method: "DELETE" })}
-          onClose={() => setDeleting(undefined)}
+      {editing && (
+        <EditDevice
+          device={editing}
+          onClose={() => setEditing(undefined)}
           onDone={r.reload}
+        />
+      )}
+      {deleting && !blocked && (
+        <Confirm
+          title={"Удалить «" + deleting.name + "»?"}
+          description={
+            deleting.status === "OUTDATED"
+              ? "Старая запись будет удалена из панели. Удалите профиль из AmneziaVPN самостоятельно."
+              : "Конфигурация этого устройства перестанет работать."
+          }
+          action={() => request(base + "/" + deleting.id, { method: "DELETE" })}
+          onClose={() => setDeleting(undefined)}
+          onDone={() => {
+            void r.reload();
+            void migration.reload();
+          }}
         />
       )}
     </>
   );
-}
-function Shield() {
-  return <Monitor size={24} />;
 }
 function CreateDevice({
   onClose,
   onDone,
 }: {
   onClose: () => void;
-  onDone: (d: Device) => void;
+  onDone: (device: Device) => void;
 }) {
+  const [icon, setIcon] = useState<DeviceIcon>("LAPTOP");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const name = String(new FormData(e.currentTarget).get("name")).trim();
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = String(
+      new FormData(event.currentTarget).get("name") || "",
+    ).trim();
     if (!name) return;
     setBusy(true);
+    setError(undefined);
     try {
-      onDone(await post<Device>("/devices", { name }));
-    } catch (e) {
-      setError(e);
+      onDone(await post<Device>("/devices", { name, icon }));
+    } catch (error) {
+      setError(error);
     } finally {
       setBusy(false);
     }
@@ -202,7 +295,6 @@ function CreateDevice({
         if (!busy) onClose();
       }}
     >
-      <p>Дайте устройству понятное имя, чтобы легко найти его позже.</p>
       <form onSubmit={submit}>
         <label>
           Название
@@ -210,14 +302,80 @@ function CreateDevice({
             name="name"
             required
             maxLength={100}
-            placeholder="Например, MacBook Pro"
+            placeholder="Например, мой телефон"
             autoFocus
           />
         </label>
+        <IconPicker value={icon} onChange={setIcon} />
         <ErrorBox error={error} />
         <button className="primary wide" disabled={busy}>
-          {busy ? "Создаём подключение…" : "Создать устройство"}
+          {busy ? "Создаём…" : "Создать устройство"}
         </button>
+      </form>
+    </Modal>
+  );
+}
+function EditDevice({
+  device,
+  onClose,
+  onDone,
+}: {
+  device: Device;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [icon, setIcon] = useState<DeviceIcon>(device.icon || "LAPTOP");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>();
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = String(
+      new FormData(event.currentTarget).get("name") || "",
+    ).trim();
+    if (!name) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await request<Device>("/devices/" + device.id, {
+        method: "PATCH",
+        body: JSON.stringify({ name, icon }),
+      });
+      onDone();
+      onClose();
+    } catch (error) {
+      setError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal
+      title="Изменить устройство"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <form onSubmit={submit}>
+        <label>
+          Название
+          <input
+            name="name"
+            required
+            maxLength={100}
+            defaultValue={device.name}
+            autoFocus
+          />
+        </label>
+        <IconPicker value={icon} onChange={setIcon} />
+        <ErrorBox error={error} />
+        <div className="device-edit-actions">
+          <button type="button" disabled={busy} onClick={onClose}>
+            Отмена
+          </button>
+          <button className="primary" disabled={busy}>
+            {busy ? "Сохраняем…" : "Сохранить"}
+          </button>
+        </div>
       </form>
     </Modal>
   );
@@ -231,101 +389,140 @@ export function DeviceDetails({
   admin: boolean;
   onClose: () => void;
 }) {
-  const r = useResource<Device>(`${admin ? "/admin" : ""}/devices/${id}`);
+  const migration = useVpnMigration();
+  const r = useResource<Device>((admin ? "/admin" : "") + "/devices/" + id);
+  const outdated =
+    r.data?.status === "OUTDATED" ||
+    !!(
+      r.data &&
+      migration.data &&
+      r.data.generation < migration.data.generation
+    );
+  const unavailable = !migration.data || migration.data.maintenance || outdated;
   const [nativeQr, setNativeQr] = useState<string[]>([]);
+  const [qrIndex, setQrIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  async function run(fn: () => Promise<void>) {
+  async function run(action: () => Promise<void>) {
     setBusy(true);
     setError(undefined);
     try {
-      await fn();
-    } catch (e) {
-      setError(e);
+      await action();
+    } catch (error) {
+      setError(error);
     } finally {
       setBusy(false);
     }
   }
-  const base = `/devices/${id}/config`;
   async function accessKey() {
-    const text = await request<string>(`${base}?format=TEXT`, {}, "text");
+    const text = await request<string>(
+      "/devices/" + id + "/config?format=TEXT",
+      {},
+      "text",
+    );
     return amneziaLink(text, r.data!.name, r.data!.publicKey);
   }
-
   return (
     <Modal title={r.data?.name || "Устройство"} onClose={onClose}>
       <ResourceState {...r} />
       {r.data && (
         <>
-          <div className="detail-status">
-            <Badge value={r.data.status} />
-            <code>{r.data.vpnIp}</code>
-          </div>
-          <dl>
-            <dt>Создано</dt>
-            <dd>{date(r.data.createdAt)}</dd>
-            <dt>Последнее рукопожатие</dt>
-            <dd>{date(r.data.lastHandshakeAt)}</dd>
-            <dt>Трафик RX / TX сервера</dt>
-            <dd>
-              {bytes(r.data.rxBytes)} / {bytes(r.data.txBytes)}
-            </dd>
-            <dt>Публичный ключ</dt>
-            <dd className="mono break">{r.data.publicKey}</dd>
-            {r.data.owner && (
-              <>
-                <dt>Владелец</dt>
-                <dd>{r.data.owner.nickname}</dd>
-              </>
-            )}
-          </dl>
-          {!admin && (
+          {outdated && (
+            <div className="outdated-notice">
+              <p className="outdated-label">
+                <AlertTriangle size={16} aria-hidden="true" />
+                Устарел после переезда
+              </p>
+              <p>Создайте новое устройство и удалите эту запись из панели.</p>
+            </div>
+          )}
+          {admin && (
+            <div className="admin-device-details">
+              {!outdated && <Badge value={r.data.status} />}
+              <dl className="device-facts">
+                <div>
+                  <dt>Владелец</dt>
+                  <dd>
+                    {r.data.owner?.internalName ||
+                      r.data.owner?.nickname ||
+                      "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Тип устройства</dt>
+                  <dd>{iconLabels[r.data.icon || "LAPTOP"]}</dd>
+                </div>
+                <div>
+                  <dt>Адрес в VPN</dt>
+                  <dd>{r.data.vpnIp}</dd>
+                </div>
+                <div>
+                  <dt>Создано</dt>
+                  <dd>{date(r.data.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>Последнее подключение</dt>
+                  <dd>
+                    {outdated || r.data.status === "UNKNOWN"
+                      ? "—"
+                      : date(r.data.lastHandshakeAt)}
+                  </dd>
+                </div>
+              </dl>
+              <section
+                className="device-traffic"
+                aria-label="Трафик устройства"
+              >
+                <h3>Трафик устройства</h3>
+                <div className="device-traffic-grid">
+                  <div>
+                    <span>
+                      <ArrowDown size={16} aria-hidden="true" />
+                      Получено
+                    </span>
+                    <strong>
+                      {bytes(
+                        outdated || r.data.status === "UNKNOWN"
+                          ? undefined
+                          : r.data.txBytes,
+                      )}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>
+                      <ArrowUp size={16} aria-hidden="true" />
+                      Отправлено
+                    </span>
+                    <strong>
+                      {bytes(
+                        outdated || r.data.status === "UNKNOWN"
+                          ? undefined
+                          : r.data.rxBytes,
+                      )}
+                    </strong>
+                  </div>
+                </div>
+                <p>
+                  {outdated
+                    ? "Статистика старого сервера недоступна."
+                    : r.data.status === "UNKNOWN"
+                      ? "Не удалось получить статистику с VPN-сервера."
+                      : "С точки зрения устройства. Счётчики могут сбрасываться при перезапуске VPN."}
+                </p>
+              </section>
+            </div>
+          )}
+          {!admin && !unavailable && (
             <>
-              <div className="connection-help">
-                <h3>Как подключиться</h3>
-                <p>
-                  Установите AmneziaVPN с поддержкой AWG 3.1 на устройство, для
-                  которого создан этот профиль. Выберите один способ добавления
-                  подключения:
-                </p>
-                <ol>
-                  <li>
-                    <strong>Через файл.</strong> Нажмите «Скачать .conf файл». В
-                    AmneziaVPN нажмите «+» для добавления подключения, выберите
-                    импорт из файла и откройте скачанный файл из папки
-                    «Загрузки».
-                  </li>
-                  <li>
-                    <strong>Через QR.</strong> Нажмите «Сканировать QR-код»
-                    здесь. На другом устройстве откройте AmneziaVPN → «+» →
-                    сканирование QR и наведите камеру на код на экране.
-                    Используйте сканер внутри AmneziaVPN.
-                  </li>
-                  <li>
-                    <strong>Через ключ.</strong> Нажмите «Скопировать ключ
-                    доступа». В AmneziaVPN нажмите «+», выберите добавление по
-                    ключу или из буфера обмена и вставьте скопированный ключ.
-                  </li>
-                </ol>
-                <p>
-                  После импорта выберите добавленное подключение и нажмите
-                  «Подключиться». На одном устройстве используйте один профиль.
-                </p>
-                <small>
-                  Файл, QR и ключ дают доступ к вашему VPN. Передавайте их
-                  только владельцу устройства.
-                </small>
-              </div>
               <div className="connection-actions">
                 <button
                   disabled={busy}
                   onClick={() =>
                     run(async () => {
-                      const key = await accessKey();
                       download(
-                        new Blob([key], { type: "text/plain" }),
-                        `amnezia-${id}.conf`,
+                        new Blob([await accessKey()], { type: "text/plain" }),
+                        "amnezia-" + id + ".conf",
                       );
                     })
                   }
@@ -345,10 +542,14 @@ export function DeviceDetails({
                             margin: 4,
                             errorCorrectionLevel: "L",
                           });
-                          return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+                          return (
+                            "data:image/svg+xml;charset=utf-8," +
+                            encodeURIComponent(svg)
+                          );
                         }),
                       );
                       setNativeQr(images);
+                      setQrIndex(0);
                     })
                   }
                 >
@@ -359,8 +560,7 @@ export function DeviceDetails({
                   disabled={busy}
                   onClick={() =>
                     run(async () => {
-                      const key = await accessKey();
-                      await navigator.clipboard.writeText(key);
+                      await navigator.clipboard.writeText(await accessKey());
                       setCopied(true);
                     })
                   }
@@ -369,41 +569,51 @@ export function DeviceDetails({
                   Скопировать ключ доступа
                 </button>
               </div>
-              {copied && (
-                <p role="status">
-                  Ключ скопирован. Вставьте его при добавлении подключения в
-                  AmneziaVPN.
-                </p>
-              )}
+              {copied && <p role="status">Ключ скопирован</p>}
               {nativeQr.length > 0 && (
                 <div className="qr-series">
                   <p>
-                    Откройте сканер QR в AmneziaVPN на другом устройстве и
-                    наведите камеру на изображение.
+                    {nativeQr.length > 1
+                      ? "Просканируйте все коды по порядку в AmneziaVPN."
+                      : "Откройте сканер в AmneziaVPN на другом устройстве."}
                   </p>
+                  <img
+                    className="qr"
+                    src={nativeQr[qrIndex]}
+                    alt={
+                      "QR-код AmneziaVPN " +
+                      (qrIndex + 1) +
+                      " из " +
+                      nativeQr.length
+                    }
+                  />
                   {nativeQr.length > 1 && (
-                    <p>
-                      Просканируйте все {nativeQr.length} кода по порядку, не
-                      закрывая сканер. Подключение добавится после последнего
-                      кода.
-                    </p>
+                    <div className="qr-navigation">
+                      <button
+                        aria-label="Предыдущий QR-код"
+                        disabled={qrIndex === 0}
+                        onClick={() => setQrIndex(qrIndex - 1)}
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <span>
+                        Код {qrIndex + 1} из {nativeQr.length}
+                      </span>
+                      <button
+                        aria-label="Следующий QR-код"
+                        disabled={qrIndex + 1 === nativeQr.length}
+                        onClick={() => setQrIndex(qrIndex + 1)}
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
                   )}
-                  {nativeQr.map((image, index) => (
-                    <figure key={index}>
-                      <img
-                        className="qr"
-                        src={image}
-                        alt={`QR-код AmneziaVPN ${index + 1} из ${nativeQr.length}`}
-                      />
-                      {nativeQr.length > 1 && (
-                        <figcaption>
-                          Код {index + 1} из {nativeQr.length}
-                        </figcaption>
-                      )}
-                    </figure>
-                  ))}
                 </div>
               )}
+              <Link className="connection-guide" to="/guide" onClick={onClose}>
+                <BookOpen size={17} />
+                Гайд со скриншотами
+              </Link>
               <ErrorBox error={error} />
             </>
           )}

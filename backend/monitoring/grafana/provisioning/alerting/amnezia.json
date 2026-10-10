@@ -1,0 +1,1000 @@
+{
+  "apiVersion": 1,
+  "contactPoints": [
+    {
+      "orgId": 1,
+      "name": "Amnezia Telegram",
+      "receivers": [
+        {
+          "uid": "acp-telegram",
+          "type": "telegram",
+          "disableResolveMessage": false,
+          "settings": {
+            "bottoken": "$TELEGRAM_BOT_TOKEN",
+            "chatid": "$TELEGRAM_CHAT_ID",
+            "parse_mode": "HTML",
+            "disable_web_page_preview": true,
+            "message": "{{ range .Alerts -}}\n{{ if eq .Status \"resolved\" }}🟢 <b>Восстановлено</b>{{ else if eq .Labels.severity \"warning\" }}🟡 <b>Предупреждение</b>{{ else }}🔴 <b>Проблема</b>{{ end }} · Amnezia\n{{ if and (eq .Status \"resolved\") .Annotations.recovery }}{{ .Annotations.recovery | html }}{{ else if .Annotations.summary }}{{ .Annotations.summary | html }}{{ else }}{{ .Labels.alertname | html }}{{ end }}\n{{ if .PanelURL }}<a href=\"{{ .PanelURL | html }}\">Открыть график →</a>{{ else if .DashboardURL }}<a href=\"{{ .DashboardURL | html }}\">Открыть дашборд →</a>{{ else }}<a href=\"{{ .GeneratorURL | html }}\">Подробнее →</a>{{ end }}\n\n{{ end -}}"
+          }
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "orgId": 1,
+      "receiver": "Amnezia Telegram",
+      "group_by": [
+        "alertname",
+        "instance"
+      ],
+      "group_wait": "30s",
+      "group_interval": "5m",
+      "repeat_interval": "4h",
+      "routes": [
+        {
+          "receiver": "Amnezia Telegram",
+          "object_matchers": [
+            [
+              "alertname",
+              "=",
+              "DatasourceError"
+            ]
+          ],
+          "group_by": [
+            "alertname",
+            "datasource_uid"
+          ],
+          "group_wait": "1m",
+          "group_interval": "5m",
+          "repeat_interval": "4h"
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "Amnezia health",
+      "folder": "Amnezia",
+      "interval": "30s",
+      "rules": [
+        {
+          "uid": "acp-application-down",
+          "title": "Application unavailable",
+          "condition": "B",
+          "for": "2m",
+          "noDataState": "Alerting",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "application",
+            "severity": "critical"
+          },
+          "annotations": {
+            "summary": "Приложение недоступно",
+            "description": "Prometheus не может получить метрики более 2 минут. Проверьте backend, сеть и METRICS_TOKEN.",
+            "__dashboardUid": "amnezia-control-panel",
+            "__panelId": "1",
+            "recovery": "Приложение снова доступно"
+          },
+          "dashboardUid": "amnezia-control-panel",
+          "panelId": 1,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (up{job=\"amnezia-control-panel\"} == bool 0)",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-vpn-down",
+          "title": "VPN unavailable",
+          "condition": "B",
+          "for": "2m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "vpn",
+            "severity": "critical"
+          },
+          "annotations": {
+            "summary": "VPN недоступен",
+            "description": "SSH/VPN проверка неуспешна или метрика отсутствует более 2 минут при работающем приложении.",
+            "__dashboardUid": "amnezia-vpn",
+            "__panelId": "25",
+            "recovery": "VPN снова доступен"
+          },
+          "dashboardUid": "amnezia-vpn",
+          "panelId": 25,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (((vpn_server_up{job=\"amnezia-control-panel\"} == bool 0) or (up{job=\"amnezia-control-panel\"} unless on(job,instance) vpn_server_up{job=\"amnezia-control-panel\"})) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-database-down",
+          "title": "SQLite unavailable or stale",
+          "condition": "B",
+          "for": "2m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "database",
+            "severity": "critical"
+          },
+          "annotations": {
+            "summary": "SQLite недоступна или проверка устарела",
+            "description": "Чтение SQLite завершилось ошибкой либо проверка старше 120 секунд. Проверьте права, диск и блокировки.",
+            "__dashboardUid": "amnezia-database",
+            "__panelId": "1",
+            "recovery": "Проверка SQLite восстановлена"
+          },
+          "dashboardUid": "amnezia-database",
+          "panelId": 1,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (((up{job=\"amnezia-control-panel\"} unless on(job,instance) ((sqlite_database_up{job=\"amnezia-control-panel\"} == 1) and on(job,instance) (sqlite_database_checked_timestamp_seconds{job=\"amnezia-control-panel\"} > time() - 120))) or (up{job=\"amnezia-control-panel\"} * 0)) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-http-errors",
+          "title": "HTTP 5xx above 5 percent",
+          "condition": "B",
+          "for": "5m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "application",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "HTTP: доля 5xx выше 5%",
+            "description": "Порог держится 5 минут; требуется минимум 20 запросов за 5 минут. Actuator исключён.",
+            "__dashboardUid": "amnezia-control-panel",
+            "__panelId": "13",
+            "recovery": "Доля ошибок HTTP в норме"
+          },
+          "dashboardUid": "amnezia-control-panel",
+          "panelId": 13,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) ((((sum by (job,instance) (increase(http_server_requests_seconds_count{job=\"amnezia-control-panel\",uri!~\"/actuator.*\",status=~\"5..\"}[5m])) / sum by (job,instance) (increase(http_server_requests_seconds_count{job=\"amnezia-control-panel\",uri!~\"/actuator.*\"}[5m]))) > bool 0.05) and on(job,instance) (sum by (job,instance) (increase(http_server_requests_seconds_count{job=\"amnezia-control-panel\",uri!~\"/actuator.*\"}[5m])) >= 20)) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-http-latency",
+          "title": "HTTP p95 above 1 second",
+          "condition": "B",
+          "for": "10m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "application",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "HTTP: p95 выше 1 секунды",
+            "description": "Порог держится 10 минут; минимум 20 запросов за 5 минут. Проверьте медленные маршруты.",
+            "__dashboardUid": "amnezia-control-panel",
+            "__panelId": "12",
+            "recovery": "Задержка HTTP в норме"
+          },
+          "dashboardUid": "amnezia-control-panel",
+          "panelId": 12,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (((histogram_quantile(0.95, sum by (job,instance,le) (rate(http_server_requests_seconds_bucket{job=\"amnezia-control-panel\",uri!~\"/actuator.*\"}[5m]))) > bool 1) and on(job,instance) (sum by (job,instance) (increase(http_server_requests_seconds_count{job=\"amnezia-control-panel\",uri!~\"/actuator.*\"}[5m])) >= 20)) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-heap-high",
+          "title": "JVM heap above 90 percent",
+          "condition": "B",
+          "for": "10m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "application",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "JVM: heap выше 90%",
+            "description": "Порог держится 10 минут. Проверьте GC и рост heap.",
+            "__dashboardUid": "amnezia-control-panel",
+            "__panelId": "20",
+            "recovery": "Использование heap в норме"
+          },
+          "dashboardUid": "amnezia-control-panel",
+          "panelId": 20,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (((sum by (job,instance) (jvm_memory_used_bytes{job=\"amnezia-control-panel\",area=\"heap\"}) / sum by (job,instance) (jvm_memory_max_bytes{job=\"amnezia-control-panel\",area=\"heap\"} > 0)) > bool 0.9) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-cpu-high",
+          "title": "Process CPU above 90 percent",
+          "condition": "B",
+          "for": "10m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "application",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "CPU процесса выше 90%",
+            "description": "Порог держится 10 минут. Проверьте нагрузку HTTP, GC и фоновые задачи.",
+            "__dashboardUid": "amnezia-control-panel",
+            "__panelId": "29",
+            "recovery": "Нагрузка CPU в норме"
+          },
+          "dashboardUid": "amnezia-control-panel",
+          "panelId": 29,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) ((process_cpu_usage{job=\"amnezia-control-panel\"} > bool 0.9) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-sql-errors",
+          "title": "Repeated SQL errors",
+          "condition": "B",
+          "for": "2m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "database",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "Повторяющиеся ошибки SQL",
+            "description": "Не менее 3 ошибок за 5 минут, состояние держится 2 минуты. Подробности по категориям в Database Monitoring.",
+            "__dashboardUid": "amnezia-database",
+            "__panelId": "11",
+            "recovery": "Ошибки SQL ниже порога"
+          },
+          "dashboardUid": "amnezia-database",
+          "panelId": 11,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) ((sum by (job,instance) (increase(sqlite_query_seconds_count{job=\"amnezia-control-panel\",error!=\"none\"}[5m])) >= bool 3) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-sqlite-locks",
+          "title": "SQLite busy or locked",
+          "condition": "B",
+          "for": "1m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "database",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "SQLite: BUSY / LOCKED",
+            "description": "За последние 5 минут были ошибки блокировки. Состояние держится 1 минуту; проверьте длительные транзакции.",
+            "__dashboardUid": "amnezia-database",
+            "__panelId": "12",
+            "recovery": "Новых ошибок блокировок SQLite нет"
+          },
+          "dashboardUid": "amnezia-database",
+          "panelId": 12,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) ((sum by (job,instance) (increase(sqlite_query_seconds_count{job=\"amnezia-control-panel\",error=~\"busy|locked\"}[5m])) > bool 0) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-sql-latency",
+          "title": "SQL p95 above 200 milliseconds",
+          "condition": "B",
+          "for": "5m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "database",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "SQL: p95 выше 200 мс",
+            "description": "Порог держится 5 минут; минимум 20 операций за 5 минут. Включает ожидание соединения и mapping.",
+            "__dashboardUid": "amnezia-database",
+            "__panelId": "7",
+            "recovery": "Задержка SQL в норме"
+          },
+          "dashboardUid": "amnezia-database",
+          "panelId": 7,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) (((histogram_quantile(0.95, sum by (job,instance,le) (rate(sqlite_query_seconds_bucket{job=\"amnezia-control-panel\"}[5m]))) > bool 0.2) and on(job,instance) (sum by (job,instance) (increase(sqlite_query_seconds_count{job=\"amnezia-control-panel\"}[5m])) >= 20)) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "acp-pool-timeouts",
+          "title": "SQLite connection timeouts",
+          "condition": "B",
+          "for": "1m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "service": "amnezia-control-panel",
+            "component": "database",
+            "severity": "critical"
+          },
+          "annotations": {
+            "summary": "SQLite: тайм-аут получения соединения",
+            "description": "За 5 минут возник тайм-аут пула, состояние держится 1 минуту. Проверьте занятость соединения.",
+            "__dashboardUid": "amnezia-database",
+            "__panelId": "14",
+            "recovery": "Новых тайм-аутов соединений нет"
+          },
+          "dashboardUid": "amnezia-database",
+          "panelId": 14,
+          "data": [
+            {
+              "refId": "A",
+              "datasourceUid": "acp-prometheus",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "model": {
+                "refId": "A",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "acp-prometheus"
+                },
+                "expr": "max by (job,instance) ((sum by (job,instance) (increase(hikaricp_connections_timeout_total{job=\"amnezia-control-panel\"}[5m])) > bool 0) and on(job,instance) (up{job=\"amnezia-control-panel\"} == 1))",
+                "instant": true,
+                "range": false,
+                "format": "time_series",
+                "intervalMs": 15000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "conditions": [
+                  {
+                    "type": "query",
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

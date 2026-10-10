@@ -1,1 +1,1 @@
-INSERT INTO devices (id, user_id, name, vpn_ip, client_public_key, client_private_key_enc, created_at) VALUES (:deviceId, :userId, :name, :vpnIp, :publicKey, :privateKeyEncrypted, :createdAt)
+INSERT INTO devices (id, user_id, name, icon, vpn_ip, client_public_key, client_private_key_enc, created_at, generation) VALUES (:deviceId, :userId, :name, :icon, :vpnIp, :publicKey, :privateKeyEncrypted, :createdAt, :generation)

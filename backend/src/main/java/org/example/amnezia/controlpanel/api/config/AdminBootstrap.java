@@ -6,8 +6,10 @@ import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.
 import java.time.Clock;
 import java.util.UUID;
 import org.example.amnezia.controlpanel.api.audit.AuditService;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.persistence.model.User;
 import org.example.amnezia.controlpanel.api.persistence.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.DependsOn;
@@ -31,7 +33,7 @@ public class AdminBootstrap implements ApplicationRunner {
       PasswordEncoder passwords,
       AuditService audit,
       Clock clock,
-      TransactionTemplate tx) {
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx) {
     this.config = config;
     this.users = users;
     this.passwords = passwords;

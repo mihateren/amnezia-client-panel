@@ -3,6 +3,8 @@ package org.example.amnezia.controlpanel.api.service;
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.EventType.ADMIN_LOGIN;
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.EventType.USER_LOGIN;
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.EventType.USER_LOGOUT;
+import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.EventType.USER_NICKNAME_CHANGED;
+import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.EventType.USER_PASSWORD_CHANGED;
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.Result.FAILURE;
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.Result.SUCCESS;
 
@@ -11,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import org.example.amnezia.controlpanel.api.audit.AuditService;
 import org.example.amnezia.controlpanel.api.config.AppProperties;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.dto.AuthDtos;
 import org.example.amnezia.controlpanel.api.exception.ApiException;
 import org.example.amnezia.controlpanel.api.persistence.model.RefreshSession;
@@ -19,6 +22,9 @@ import org.example.amnezia.controlpanel.api.persistence.repository.RefreshSessio
 import org.example.amnezia.controlpanel.api.persistence.repository.UserRepository;
 import org.example.amnezia.controlpanel.api.security.JwtService;
 import org.example.amnezia.controlpanel.api.security.Secrets;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -44,7 +50,7 @@ public class AuthService {
       AuditService audit,
       Clock clock,
       AppProperties config,
-      TransactionTemplate tx,
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       ReentrantLock lock) {
     this.users = users;
     this.sessions = sessions;
@@ -134,6 +140,52 @@ public class AuthService {
             if (!sessions.revoke(old.tokenHash(), clock.instant()))
               throw ApiException.unauthorized();
             return session(user);
+          });
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  public AuthDtos.CurrentUser updateNickname(UUID actor, AuthDtos.UpdateNickname command) {
+    lock.lock();
+    try {
+      return tx.execute(
+          status -> {
+            var current = active(actor);
+            if (current.nickname().equals(command.nickname()))
+              return AuthDtos.CurrentUser.from(current);
+            if (users.findByNickname(command.nickname()).isPresent())
+              throw ApiException.conflict("NICKNAME_TAKEN", "Nickname already exists");
+            try {
+              users.nickname(actor, command.nickname(), clock.instant());
+            } catch (DuplicateKeyException exception) {
+              throw ApiException.conflict("NICKNAME_TAKEN", "Nickname already exists");
+            }
+            audit.record(USER_NICKNAME_CHANGED, SUCCESS, actor, "USER", actor);
+            return AuthDtos.CurrentUser.from(
+                users.find(actor).orElseThrow(ApiException::unauthorized));
+          });
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  public LoginResult changePassword(UUID actor, AuthDtos.ChangePassword command) {
+    lock.lock();
+    try {
+      var current = active(actor);
+      if (!passwords.matches(command.currentPassword(), current.passwordHash())) {
+        audit.record(USER_PASSWORD_CHANGED, FAILURE, actor, "USER", actor);
+        throw new ApiException(
+            HttpStatus.BAD_REQUEST, "CURRENT_PASSWORD_INVALID", "Current password is invalid");
+      }
+      var hash = passwords.encode(command.newPassword());
+      return tx.execute(
+          status -> {
+            users.password(actor, hash, clock.instant());
+            sessions.revokeUser(actor, clock.instant());
+            audit.record(USER_PASSWORD_CHANGED, SUCCESS, actor, "USER", actor);
+            return session(current);
           });
     } finally {
       lock.unlock();

@@ -18,6 +18,7 @@ public final class QueryParameter {
   public static final String CREATED_BY = "createdBy";
   public static final String EXPIRES_AT = "expiresAt";
   public static final String NAME = "name";
+  public static final String ICON = "icon";
   public static final String VPN_IP = "vpnIp";
   public static final String PUBLIC_KEY = "publicKey";
   public static final String PRIVATE_KEY_ENCRYPTED = "privateKeyEncrypted";

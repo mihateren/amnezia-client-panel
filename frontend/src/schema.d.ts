@@ -4,1473 +4,1897 @@
  */
 
 export interface paths {
-  "/api/v1/auth/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authenticate user */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Authenticate user */
-    post: operations["login"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/refresh": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh access token
+         * @description Refresh token is read from an HttpOnly secure cookie.
+         *     Refresh token must not be supplied in the request body.
+         */
+        post: operations["refreshToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Refresh access token
-     * @description Refresh token is read from an HttpOnly secure cookie.
-     *     Refresh token must not be supplied in the request body.
-     */
-    post: operations["refreshToken"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/logout": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout current user */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Logout current user */
-    post: operations["logout"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/me": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current authenticated user */
+        get: operations["getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get current authenticated user */
-    get: operations["getCurrentUser"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/invitations": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/me/nickname": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update current user nickname */
+        patch: operations["updateCurrentNickname"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create user invitation */
-    post: operations["createInvitation"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/invitations/{token}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update current user password */
+        patch: operations["changeCurrentPassword"];
+        trace?: never;
     };
-    /** Validate invitation */
-    get: operations["validateInvitation"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/invitations/{token}/register": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create user invitation */
+        post: operations["createInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Register user using invitation */
-    post: operations["registerUser"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/users": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Validate invitation */
+        get: operations["validateInvitation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get users */
-    get: operations["getUsers"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/users/{userId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/invitations/{token}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register user using invitation */
+        post: operations["registerUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get user details */
-    get: operations["getUser"];
-    put?: never;
-    post?: never;
-    /** Delete user */
-    delete: operations["deleteUser"];
-    options?: never;
-    head?: never;
-    /** Change user status */
-    patch: operations["updateUserStatus"];
-    trace?: never;
-  };
-  "/api/v1/devices": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get users */
+        get: operations["getUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get current user's devices */
-    get: operations["getMyDevices"];
-    put?: never;
-    /**
-     * Create VPN device
-     * @description Creates a VPN peer on the configured AmneziaWG server.
-     *
-     *     The operation is executed under an application-level VPN lock.
-     *     The server configuration is read from the VDS before IP allocation.
-     */
-    post: operations["createDevice"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/devices/{deviceId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get user details */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        /** Delete user */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        /** Change user status */
+        patch: operations["updateUserStatus"];
+        trace?: never;
     };
-    /** Get device */
-    get: operations["getMyDevice"];
-    put?: never;
-    post?: never;
-    /** Delete VPN device */
-    delete: operations["deleteMyDevice"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/devices/{deviceId}/config": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current user's devices */
+        get: operations["getMyDevices"];
+        put?: never;
+        /**
+         * Create VPN device
+         * @description Creates a VPN peer on the configured AmneziaWG server.
+         *
+         *     The operation is executed under an application-level VPN lock.
+         *     The server configuration is read from the VDS before IP allocation.
+         */
+        post: operations["createDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get VPN configuration */
-    get: operations["getDeviceConfig"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/devices/{deviceId}/config/file": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices/{deviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get device */
+        get: operations["getMyDevice"];
+        put?: never;
+        post?: never;
+        /** Delete VPN device */
+        delete: operations["deleteMyDevice"];
+        options?: never;
+        head?: never;
+        /** Update device name and icon */
+        patch: operations["updateMyDevice"];
+        trace?: never;
     };
-    /** Download VPN configuration file */
-    get: operations["downloadDeviceConfig"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/devices/{deviceId}/config/qr": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices/{deviceId}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get VPN configuration */
+        get: operations["getDeviceConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get VPN configuration as QR code */
-    get: operations["getDeviceConfigQr"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/devices/{deviceId}/config/link": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices/{deviceId}/config/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download VPN configuration file */
+        get: operations["downloadDeviceConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Create configuration import link
-     * @description Creates a link that can be used to import the VPN configuration.
-     *
-     *     The returned link is a secret and must not be written to logs
-     *     or audit records.
-     */
-    post: operations["createDeviceConfigLink"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/config/{token}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices/{deviceId}/config/qr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get VPN configuration as QR code */
+        get: operations["getDeviceConfigQr"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Import VPN configuration using link */
-    get: operations["importConfigByLink"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/devices": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/devices/{deviceId}/config/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create configuration import link
+         * @description Creates a link that can be used to import the VPN configuration.
+         *
+         *     The returned link is a secret and must not be written to logs
+         *     or audit records.
+         */
+        post: operations["createDeviceConfigLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get all VPN devices */
-    get: operations["getAllDevices"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/devices/{deviceId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/config/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import VPN configuration using link */
+        get: operations["importConfigByLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get device details */
-    get: operations["getAdminDevice"];
-    put?: never;
-    post?: never;
-    /** Delete VPN device */
-    delete: operations["deleteAdminDevice"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/dashboard": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all VPN devices */
+        get: operations["getAllDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get dashboard information */
-    get: operations["getAdminDashboard"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/vpn": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/devices/{deviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get device details */
+        get: operations["getAdminDevice"];
+        put?: never;
+        post?: never;
+        /** Delete VPN device */
+        delete: operations["deleteAdminDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get VPN server state */
-    get: operations["getVpnState"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/audit": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get database counts without waiting for VPN */
+        get: operations["getAdminDashboardSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get audit log */
-    get: operations["getAuditLog"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/actuator/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get dashboard information */
+        get: operations["getAdminDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Application health */
-    get: operations["health"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/actuator/prometheus": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/vpn/migration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get migration state and the current user outdated device count */
+        get: operations["getVpnMigration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Prometheus metrics (ADMIN only) */
-    get: operations["prometheus"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/api/v1/admin/vpn/migration/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start maintenance without stopping the VPN server */
+        post: operations["startVpnMigration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn/migration/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the configured server and advance the VPN generation only if the IP changed */
+        post: operations["completeVpnMigration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn/server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current server settings without the private SSH key */
+        get: operations["getVpnServerSettings"];
+        /** Save server settings during maintenance; applies without restarting */
+        put: operations["updateVpnServerSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get VPN server state */
+        get: operations["getVpnState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get audit log */
+        get: operations["getAuditLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/actuator/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Application health */
+        get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/actuator/prometheus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prometheus metrics (ADMIN only) */
+        get: operations["prometheus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    LoginRequest: {
-      nickname: string;
-      /** Format: password */
-      password: string;
+    schemas: {
+        LoginRequest: {
+            nickname: string;
+            /** Format: password */
+            password: string;
+        };
+        UpdateNicknameRequest: {
+            nickname: string;
+        };
+        ChangePasswordRequest: {
+            /** Format: password */
+            currentPassword: string;
+            /** Format: password */
+            newPassword: string;
+        };
+        RegisterUserRequest: {
+            nickname: string;
+            /** Format: password */
+            password: string;
+        };
+        AuthResponse: {
+            /** @description Short-lived access JWT */
+            accessToken: string;
+            user: components["schemas"]["CurrentUser"];
+        };
+        TokenResponse: {
+            /** @description New short-lived access JWT */
+            accessToken: string;
+        };
+        CurrentUser: {
+            /** Format: uuid */
+            id: string;
+            nickname: string;
+            role: components["schemas"]["UserRole"];
+            status: components["schemas"]["UserStatus"];
+        };
+        CreateInvitationRequest: {
+            /** @description Internal administrator-only user name */
+            internalName: string;
+        };
+        InvitationResponse: {
+            /** Format: uuid */
+            id: string;
+            internalName: string;
+            /**
+             * Format: uri
+             * @description Secret invitation URL
+             */
+            invitationUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InvitationValidationResponse: {
+            valid: boolean;
+            /** @description Optional information shown during registration */
+            internalName?: string;
+        };
+        /** @enum {string} */
+        UserRole: "USER" | "ADMIN";
+        /** @enum {string} */
+        UserStatus: "ACTIVE" | "DISABLED";
+        /** @description Disabling removes managed devices and VPN peers and revokes refresh sessions. Re-enabling does not restore devices. ADMIN accounts are protected from disable/delete. */
+        UpdateUserStatusRequest: {
+            status: components["schemas"]["UserStatus"];
+        };
+        AdminUser: {
+            /** Format: uuid */
+            id: string;
+            internalName: string;
+            nickname: string;
+            role: components["schemas"]["UserRole"];
+            status: components["schemas"]["UserStatus"];
+            deviceCount: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminUserDetails: components["schemas"]["AdminUser"] & {
+            /** Format: date-time */
+            lastActivityAt?: string | null;
+            devices?: components["schemas"]["Device"][];
+        };
+        CreateDeviceRequest: {
+            /** @example MacBook Pro */
+            name: string;
+            icon?: components["schemas"]["DeviceIcon"];
+        };
+        UpdateDeviceRequest: {
+            name: string;
+            icon: components["schemas"]["DeviceIcon"];
+        };
+        /**
+         * @description Neutral device icon; existing devices and creates without an icon use LAPTOP
+         * @enum {string}
+         */
+        DeviceIcon: "DESKTOP" | "LAPTOP" | "PHONE" | "TABLET" | "ROUTER" | "TV";
+        /** @enum {string} */
+        DeviceStatus: "ONLINE" | "OFFLINE" | "UNKNOWN" | "OUTDATED";
+        Device: {
+            /** Format: int64 */
+            generation: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            icon: components["schemas"]["DeviceIcon"];
+            /** @example 10.8.0.2 */
+            vpnIp: string;
+            /** @description Client public key */
+            publicKey: string;
+            /** @description User device reads and metadata updates use local data only and return UNKNOWN or OUTDATED; live statistics are not requested. */
+            status: components["schemas"]["DeviceStatus"];
+            /** Format: date-time */
+            lastHandshakeAt?: string | null;
+            /** Format: int64 */
+            rxBytes?: number;
+            /** Format: int64 */
+            txBytes?: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminDeviceDetails: components["schemas"]["Device"] & {
+            owner: components["schemas"]["AdminUser"];
+        };
+        /** @enum {string} */
+        ConfigFormat: "TEXT" | "JSON";
+        CreateConfigLinkRequest: {
+            /**
+             * @description Link lifetime in seconds
+             * @default 3600
+             */
+            expiresIn: number;
+        };
+        /** @description Single-use link, consumed after successful configuration generation. A lost HTTP response does not restore the link. */
+        ConfigLinkResponse: {
+            /**
+             * Format: uri
+             * @description Secret configuration import URL
+             */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        VpnServerSettingsResponse: {
+            ip: string;
+            sshPort: number;
+            username: string;
+            /** @description Public SSH host key as key-type and base64; verify via trusted channel */
+            hostKey?: string;
+            vpnPort: number;
+        };
+        UpdateVpnServerRequest: components["schemas"]["VpnServerSettingsResponse"] & {
+            /** @description Private SSH key; required for a new IP; blank retains the existing key on the same IP */
+            privateKey?: string;
+        };
+        VpnMigrationRequest: {
+            /** Format: int64 */
+            generation: number;
+        };
+        VpnMigrationStatus: {
+            /** @description Cached VPN checks have repeatedly failed for at least one minute; false during maintenance. */
+            vpnUnavailable?: boolean;
+            /** Format: int64 */
+            generation: number;
+            maintenance: boolean;
+            /**
+             * Format: int64
+             * @description Number of this user's devices from all previous VPN generations
+             */
+            outdatedDevices: number;
+        };
+        VpnState: {
+            serverUp: boolean;
+            peersTotal: number;
+            peersActive: number;
+            /** Format: date-time */
+            checkedAt?: string;
+        };
+        DashboardSummary: {
+            /** Format: int64 */
+            usersTotal: number;
+            /** Format: int64 */
+            devicesTotal: number;
+        };
+        DashboardResponse: {
+            usersTotal: number;
+            devicesTotal: number;
+            devicesActive: number;
+            vpn: components["schemas"]["VpnState"];
+            infrastructure?: components["schemas"]["InfrastructureStatus"];
+        };
+        InfrastructureStatus: {
+            application: components["schemas"]["ComponentStatus"];
+            database: components["schemas"]["ComponentStatus"];
+            ssh: components["schemas"]["ComponentStatus"];
+            vpn: components["schemas"]["ComponentStatus"];
+        };
+        /** @enum {string} */
+        ComponentStatus: "UP" | "DOWN" | "UNKNOWN";
+        /** @enum {string} */
+        AuditEventType: "USER_LOGIN" | "USER_LOGOUT" | "USER_NICKNAME_CHANGED" | "USER_PASSWORD_CHANGED" | "INVITATION_CREATED" | "INVITATION_USED" | "DEVICE_CREATED" | "DEVICE_UPDATED" | "DEVICE_CONFIG_VIEWED" | "DEVICE_CONFIG_DOWNLOADED" | "DEVICE_DELETED" | "USER_CREATED" | "USER_DISABLED" | "USER_DELETED" | "VPN_SERVER_UPDATED" | "VPN_MIGRATION_STARTED" | "VPN_MIGRATION_COMPLETED" | "ADMIN_LOGIN";
+        /** @enum {string} */
+        AuditResult: "SUCCESS" | "FAILURE";
+        AuditEvent: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            timestamp: string;
+            eventType: components["schemas"]["AuditEventType"];
+            result: components["schemas"]["AuditResult"];
+            actor?: components["schemas"]["AuditActor"];
+            object?: components["schemas"]["AuditObject"];
+            correlationId?: string;
+        };
+        AuditActor: {
+            /** Format: uuid */
+            userId?: string | null;
+            nickname?: string | null;
+        };
+        AuditObject: {
+            type?: string | null;
+            id?: string | null;
+        };
+        UserPage: {
+            content: components["schemas"]["AdminUser"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            totalPages: number;
+        };
+        DevicePage: {
+            content: components["schemas"]["Device"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            totalPages: number;
+        };
+        AdminDevicePage: {
+            content: components["schemas"]["AdminDeviceDetails"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            totalPages: number;
+        };
+        AuditPage: {
+            content: components["schemas"]["AuditEvent"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            totalPages: number;
+        };
+        ErrorResponse: {
+            /** @example DEVICE_NOT_FOUND */
+            code: string;
+            /** @example Device not found */
+            message: string;
+            /** Format: date-time */
+            timestamp: string;
+            correlationId: string;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
+        HealthResponse: {
+            /** @enum {string} */
+            status?: "UP" | "DOWN" | "UNKNOWN";
+            components?: {
+                [key: string]: Record<string, never>;
+            };
+        };
     };
-    RegisterUserRequest: {
-      nickname: string;
-      /** Format: password */
-      password: string;
+    responses: {
+        /** @description Invalid request */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Authentication required or invalid */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Insufficient permissions */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Resource not found */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
     };
-    AuthResponse: {
-      /** @description Short-lived access JWT */
-      accessToken: string;
-      user: components["schemas"]["CurrentUser"];
+    parameters: {
+        UserId: string;
+        DeviceId: string;
+        InvitationToken: string;
+        /** @description Zero-based page number */
+        Page: number;
+        /** @description Number of elements per page */
+        Size: number;
     };
-    TokenResponse: {
-      /** @description New short-lived access JWT */
-      accessToken: string;
-    };
-    CurrentUser: {
-      /** Format: uuid */
-      id: string;
-      nickname: string;
-      role: components["schemas"]["UserRole"];
-      status: components["schemas"]["UserStatus"];
-    };
-    CreateInvitationRequest: {
-      /** @description Internal administrator-only user name */
-      internalName: string;
-    };
-    InvitationResponse: {
-      /** Format: uuid */
-      id: string;
-      internalName: string;
-      /**
-       * Format: uri
-       * @description Secret invitation URL
-       */
-      invitationUrl: string;
-      /** Format: date-time */
-      createdAt: string;
-    };
-    InvitationValidationResponse: {
-      valid: boolean;
-      /** @description Optional information shown during registration */
-      internalName?: string;
-    };
-    /** @enum {string} */
-    UserRole: "USER" | "ADMIN";
-    /** @enum {string} */
-    UserStatus: "ACTIVE" | "DISABLED";
-    /** @description Disabling removes managed devices and VPN peers and revokes refresh sessions. Re-enabling does not restore devices. ADMIN accounts are protected from disable/delete. */
-    UpdateUserStatusRequest: {
-      status: components["schemas"]["UserStatus"];
-    };
-    AdminUser: {
-      /** Format: uuid */
-      id: string;
-      internalName: string;
-      nickname: string;
-      role: components["schemas"]["UserRole"];
-      status: components["schemas"]["UserStatus"];
-      deviceCount: number;
-      /** Format: date-time */
-      createdAt: string;
-    };
-    AdminUserDetails: components["schemas"]["AdminUser"] & {
-      /** Format: date-time */
-      lastActivityAt?: string | null;
-      devices?: components["schemas"]["Device"][];
-    };
-    CreateDeviceRequest: {
-      /** @example MacBook Pro */
-      name: string;
-    };
-    /** @enum {string} */
-    DeviceStatus: "ONLINE" | "OFFLINE" | "UNKNOWN";
-    Device: {
-      /** Format: uuid */
-      id: string;
-      name: string;
-      /** @example 10.8.0.2 */
-      vpnIp: string;
-      /** @description Client public key */
-      publicKey: string;
-      status: components["schemas"]["DeviceStatus"];
-      /** Format: date-time */
-      lastHandshakeAt?: string | null;
-      /** Format: int64 */
-      rxBytes?: number;
-      /** Format: int64 */
-      txBytes?: number;
-      /** Format: date-time */
-      createdAt: string;
-    };
-    AdminDeviceDetails: components["schemas"]["Device"] & {
-      owner: components["schemas"]["AdminUser"];
-    };
-    /** @enum {string} */
-    ConfigFormat: "TEXT" | "JSON";
-    CreateConfigLinkRequest: {
-      /**
-       * @description Link lifetime in seconds
-       * @default 3600
-       */
-      expiresIn: number;
-    };
-    /** @description Single-use link, consumed after successful configuration generation. A lost HTTP response does not restore the link. */
-    ConfigLinkResponse: {
-      /**
-       * Format: uri
-       * @description Secret configuration import URL
-       */
-      url: string;
-      /** Format: date-time */
-      expiresAt: string;
-    };
-    VpnState: {
-      serverUp: boolean;
-      peersTotal: number;
-      peersActive: number;
-      /** Format: date-time */
-      checkedAt?: string;
-    };
-    DashboardResponse: {
-      usersTotal: number;
-      devicesTotal: number;
-      devicesActive: number;
-      vpn: components["schemas"]["VpnState"];
-      infrastructure?: components["schemas"]["InfrastructureStatus"];
-    };
-    InfrastructureStatus: {
-      application: components["schemas"]["ComponentStatus"];
-      database: components["schemas"]["ComponentStatus"];
-      ssh: components["schemas"]["ComponentStatus"];
-      vpn: components["schemas"]["ComponentStatus"];
-    };
-    /** @enum {string} */
-    ComponentStatus: "UP" | "DOWN" | "UNKNOWN";
-    /** @enum {string} */
-    AuditEventType:
-      | "USER_LOGIN"
-      | "USER_LOGOUT"
-      | "INVITATION_CREATED"
-      | "INVITATION_USED"
-      | "DEVICE_CREATED"
-      | "DEVICE_CONFIG_VIEWED"
-      | "DEVICE_CONFIG_DOWNLOADED"
-      | "DEVICE_DELETED"
-      | "USER_CREATED"
-      | "USER_DISABLED"
-      | "USER_DELETED"
-      | "ADMIN_LOGIN";
-    /** @enum {string} */
-    AuditResult: "SUCCESS" | "FAILURE";
-    AuditEvent: {
-      /** Format: uuid */
-      id: string;
-      /** Format: date-time */
-      timestamp: string;
-      eventType: components["schemas"]["AuditEventType"];
-      result: components["schemas"]["AuditResult"];
-      actor?: components["schemas"]["AuditActor"];
-      object?: components["schemas"]["AuditObject"];
-      correlationId?: string;
-    };
-    AuditActor: {
-      /** Format: uuid */
-      userId?: string | null;
-      nickname?: string | null;
-    };
-    AuditObject: {
-      type?: string | null;
-      id?: string | null;
-    };
-    UserPage: {
-      content: components["schemas"]["AdminUser"][];
-      page: number;
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      totalPages: number;
-    };
-    DevicePage: {
-      content: components["schemas"]["Device"][];
-      page: number;
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      totalPages: number;
-    };
-    AdminDevicePage: {
-      content: components["schemas"]["AdminDeviceDetails"][];
-      page: number;
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      totalPages: number;
-    };
-    AuditPage: {
-      content: components["schemas"]["AuditEvent"][];
-      page: number;
-      size: number;
-      /** Format: int64 */
-      totalElements: number;
-      totalPages: number;
-    };
-    ErrorResponse: {
-      /** @example DEVICE_NOT_FOUND */
-      code: string;
-      /** @example Device not found */
-      message: string;
-      /** Format: date-time */
-      timestamp: string;
-      correlationId: string;
-      details?: {
-        [key: string]: unknown;
-      };
-    };
-    HealthResponse: {
-      /** @enum {string} */
-      status?: "UP" | "DOWN" | "UNKNOWN";
-      components?: {
-        [key: string]: Record<string, never>;
-      };
-    };
-  };
-  responses: {
-    /** @description Invalid request */
-    BadRequest: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorResponse"];
-      };
-    };
-    /** @description Authentication required or invalid */
-    Unauthorized: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorResponse"];
-      };
-    };
-    /** @description Insufficient permissions */
-    Forbidden: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorResponse"];
-      };
-    };
-    /** @description Resource not found */
-    NotFound: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorResponse"];
-      };
-    };
-  };
-  parameters: {
-    UserId: string;
-    DeviceId: string;
-    InvitationToken: string;
-    /** @description Zero-based page number */
-    Page: number;
-    /** @description Number of elements per page */
-    Size: number;
-  };
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  login: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentication successful */
+            200: {
+                headers: {
+                    /** @description HttpOnly refresh token cookie */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Too many authentication attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginRequest"];
-      };
+    refreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access token successfully refreshed */
+            200: {
+                headers: {
+                    /** @description Rotated HttpOnly refresh token cookie */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
     };
-    responses: {
-      /** @description Authentication successful */
-      200: {
-        headers: {
-          /** @description HttpOnly refresh token cookie */
-          "Set-Cookie"?: string;
-          [name: string]: unknown;
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["AuthResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successfully logged out */
+            204: {
+                headers: {
+                    /** @description Expired refresh token cookie */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Too many authentication attempts */
-      429: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  refreshToken: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Access token successfully refreshed */
-      200: {
-        headers: {
-          /** @description Rotated HttpOnly refresh token cookie */
-          "Set-Cookie"?: string;
-          [name: string]: unknown;
+    updateCurrentNickname: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["TokenResponse"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNicknameRequest"];
+            };
         };
-      };
-      401: components["responses"]["Unauthorized"];
+        responses: {
+            /** @description Updated account; password change revokes old refresh sessions and issues a new one. Existing access tokens expire normally. */
+            200: {
+                headers: {
+                    /** @description Password changes rotate the HttpOnly refresh token cookie */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description Nickname already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-  };
-  logout: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    changeCurrentPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated account; password change revokes old refresh sessions and issues a new one. Existing access tokens expire normally. */
+            200: {
+                headers: {
+                    /** @description Password changes rotate the HttpOnly refresh token cookie */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successfully logged out */
-      204: {
-        headers: {
-          /** @description Expired refresh token cookie */
-          "Set-Cookie"?: string;
-          [name: string]: unknown;
+    createInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content?: never;
-      };
-      401: components["responses"]["Unauthorized"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description Invitation created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
     };
-  };
-  getCurrentUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    validateInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InvitationToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation is valid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationValidationResponse"];
+                };
+            };
+            /** @description Invitation not found or already used */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Current user */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    registerUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InvitationToken"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["CurrentUser"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterUserRequest"];
+            };
         };
-      };
-      401: components["responses"]["Unauthorized"];
+        responses: {
+            /** @description User successfully registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description Nickname already exists or invitation has already been used */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-  };
-  createInvitation: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getUsers: {
+        parameters: {
+            query?: {
+                /** @description Zero-based page number */
+                page?: components["parameters"]["Page"];
+                /** @description Number of elements per page */
+                size?: components["parameters"]["Size"];
+                status?: components["schemas"]["UserStatus"];
+                /** @description Search by nickname or internal name */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateInvitationRequest"];
-      };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetails"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
     };
-    responses: {
-      /** @description Invitation created */
-      201: {
-        headers: {
-          [name: string]: unknown;
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["InvitationResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description User deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description User cannot be deleted because VPN cleanup failed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      403: components["responses"]["Forbidden"];
     };
-  };
-  validateInvitation: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        token: components["parameters"]["InvitationToken"];
-      };
-      cookie?: never;
+    updateUserStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description User status updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetails"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Invitation is valid */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getMyDevices: {
+        parameters: {
+            query?: {
+                /** @description Zero-based page number */
+                page?: components["parameters"]["Page"];
+                /** @description Number of elements per page */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["InvitationValidationResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description User devices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevicePage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
-      };
-      /** @description Invitation not found or already used */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  registerUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        token: components["parameters"]["InvitationToken"];
-      };
-      cookie?: never;
+    createDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description VPN device successfully created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description Device limit reached or VPN IP allocation conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description VPN server operation failed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RegisterUserRequest"];
-      };
+    getMyDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
     };
-    responses: {
-      /** @description User successfully registered */
-      201: {
-        headers: {
-          [name: string]: unknown;
+    deleteMyDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["AuthResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Device successfully deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description VPN peer could not be deleted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description VPN server operation failed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
-      };
-      400: components["responses"]["BadRequest"];
-      /** @description Nickname already exists or invitation has already been used */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  getUsers: {
-    parameters: {
-      query?: {
-        /** @description Zero-based page number */
-        page?: components["parameters"]["Page"];
-        /** @description Number of elements per page */
-        size?: components["parameters"]["Size"];
-        status?: components["schemas"]["UserStatus"];
-        /** @description Search by nickname or internal name */
-        search?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
+    updateMyDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Paginated users */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getDeviceConfig: {
+        parameters: {
+            query: {
+                format: components["schemas"]["ConfigFormat"];
+            };
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["UserPage"];
+        requestBody?: never;
+        responses: {
+            /** @description VPN configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                    "application/json": {
+                        /** @description VPN configuration text */
+                        config?: string;
+                        format?: components["schemas"]["ConfigFormat"];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      403: components["responses"]["Forbidden"];
     };
-  };
-  getUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
+    downloadDeviceConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AmneziaWG configuration file */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                    "text/plain": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description User details */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getDeviceConfigQr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["AdminUserDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description QR code PNG image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
-      };
-      404: components["responses"]["NotFound"];
     };
-  };
-  deleteUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
+    createDeviceConfigLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateConfigLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Configuration link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigLinkResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description User deleted */
-      204: {
-        headers: {
-          [name: string]: unknown;
+    importConfigByLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
         };
-        content?: never;
-      };
-      404: components["responses"]["NotFound"];
-      /** @description User cannot be deleted because VPN cleanup failed */
-      409: {
-        headers: {
-          [name: string]: unknown;
+        requestBody?: never;
+        responses: {
+            /** @description VPN configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Configuration link is invalid or expired */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  updateUserStatus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
+    getAllDevices: {
+        parameters: {
+            query?: {
+                /** @description Zero-based page number */
+                page?: components["parameters"]["Page"];
+                /** @description Number of elements per page */
+                size?: components["parameters"]["Size"];
+                userId?: string;
+                status?: components["schemas"]["DeviceStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All devices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDevicePage"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateUserStatusRequest"];
-      };
+    getAdminDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDeviceDetails"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
     };
-    responses: {
-      /** @description User status updated */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    deleteAdminDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: components["parameters"]["DeviceId"];
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["AdminUserDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description Device deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description VPN peer could not be deleted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
-      };
-      400: components["responses"]["BadRequest"];
-      404: components["responses"]["NotFound"];
     };
-  };
-  getMyDevices: {
-    parameters: {
-      query?: {
-        /** @description Zero-based page number */
-        page?: components["parameters"]["Page"];
-        /** @description Number of elements per page */
-        size?: components["parameters"]["Size"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getAdminDashboardSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Panel counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummary"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description User devices */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getAdminDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["DevicePage"];
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
-  createDevice: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getVpnMigration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Migration state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnMigrationStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateDeviceRequest"];
-      };
+    startVpnMigration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VpnMigrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Migration state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnMigrationStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Migration state changed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description VPN device successfully created */
-      201: {
-        headers: {
-          [name: string]: unknown;
+    completeVpnMigration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["Device"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VpnMigrationRequest"];
+            };
         };
-      };
-      400: components["responses"]["BadRequest"];
-      /** @description Device limit reached or VPN IP allocation conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
+        responses: {
+            /** @description Migration state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnMigrationStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Migration state changed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description VPN server operation failed */
-      502: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  getMyDevice: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
+    getVpnServerSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnServerSettingsResponse"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Device */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    updateVpnServerSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["Device"];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVpnServerRequest"];
+            };
         };
-      };
-      404: components["responses"]["NotFound"];
+        responses: {
+            /** @description Settings saved; private key is never returned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnServerSettingsResponse"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            /** @description Maintenance required or missing credentials for a changed IP */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
     };
-  };
-  deleteMyDevice: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
+    getVpnState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description VPN server state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnState"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Device successfully deleted */
-      204: {
-        headers: {
-          [name: string]: unknown;
+    getAuditLog: {
+        parameters: {
+            query?: {
+                /** @description Zero-based page number */
+                page?: components["parameters"]["Page"];
+                /** @description Number of elements per page */
+                size?: components["parameters"]["Size"];
+                eventType?: components["schemas"]["AuditEventType"];
+                userId?: string;
+                result?: components["schemas"]["AuditResult"];
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content?: never;
-      };
-      404: components["responses"]["NotFound"];
-      /** @description VPN peer could not be deleted */
-      409: {
-        headers: {
-          [name: string]: unknown;
+        requestBody?: never;
+        responses: {
+            /** @description Audit events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
         };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description VPN server operation failed */
-      502: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
     };
-  };
-  getDeviceConfig: {
-    parameters: {
-      query: {
-        format: components["schemas"]["ConfigFormat"];
-      };
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
+    health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Application is healthy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Application is unhealthy */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description VPN configuration */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    prometheus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "text/plain": string;
-          "application/json": {
-            /** @description VPN configuration text */
-            config?: string;
-            format?: components["schemas"]["ConfigFormat"];
-          };
+        requestBody?: never;
+        responses: {
+            /** @description Prometheus exposition including HTTP, JVM and VPN metrics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
-      };
-      404: components["responses"]["NotFound"];
     };
-  };
-  downloadDeviceConfig: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description AmneziaWG configuration file */
-      200: {
-        headers: {
-          "Content-Disposition"?: string;
-          [name: string]: unknown;
-        };
-        content: {
-          "application/octet-stream": string;
-          "text/plain": string;
-        };
-      };
-      404: components["responses"]["NotFound"];
-    };
-  };
-  getDeviceConfigQr: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description QR code PNG image */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "image/png": string;
-        };
-      };
-      404: components["responses"]["NotFound"];
-    };
-  };
-  createDeviceConfigLink: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["CreateConfigLinkRequest"];
-      };
-    };
-    responses: {
-      /** @description Configuration link */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ConfigLinkResponse"];
-        };
-      };
-      404: components["responses"]["NotFound"];
-    };
-  };
-  importConfigByLink: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        token: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description VPN configuration */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Configuration link is invalid or expired */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-    };
-  };
-  getAllDevices: {
-    parameters: {
-      query?: {
-        /** @description Zero-based page number */
-        page?: components["parameters"]["Page"];
-        /** @description Number of elements per page */
-        size?: components["parameters"]["Size"];
-        userId?: string;
-        status?: components["schemas"]["DeviceStatus"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description All devices */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AdminDevicePage"];
-        };
-      };
-    };
-  };
-  getAdminDevice: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Device details */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AdminDeviceDetails"];
-        };
-      };
-      404: components["responses"]["NotFound"];
-    };
-  };
-  deleteAdminDevice: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        deviceId: components["parameters"]["DeviceId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Device deleted */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      404: components["responses"]["NotFound"];
-      /** @description VPN peer could not be deleted */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-    };
-  };
-  getAdminDashboard: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Dashboard */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["DashboardResponse"];
-        };
-      };
-    };
-  };
-  getVpnState: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description VPN server state */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VpnState"];
-        };
-      };
-    };
-  };
-  getAuditLog: {
-    parameters: {
-      query?: {
-        /** @description Zero-based page number */
-        page?: components["parameters"]["Page"];
-        /** @description Number of elements per page */
-        size?: components["parameters"]["Size"];
-        eventType?: components["schemas"]["AuditEventType"];
-        userId?: string;
-        result?: components["schemas"]["AuditResult"];
-        from?: string;
-        to?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Audit events */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AuditPage"];
-        };
-      };
-    };
-  };
-  health: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Application is healthy */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-      /** @description Application is unhealthy */
-      503: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-    };
-  };
-  prometheus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Prometheus exposition including HTTP, JVM and VPN metrics */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/plain": string;
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-      403: components["responses"]["Forbidden"];
-    };
-  };
 }

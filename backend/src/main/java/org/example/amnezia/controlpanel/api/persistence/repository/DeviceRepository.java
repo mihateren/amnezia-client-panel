@@ -1,96 +1,37 @@
 package org.example.amnezia.controlpanel.api.persistence.repository;
 
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.CREATED_AT;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.DEVICE_ID;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.NAME;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.PRIVATE_KEY_ENCRYPTED;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.PUBLIC_KEY;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.USER_ID;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.VPN_IP;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.example.amnezia.controlpanel.api.config.db.DatabasePins;
-import org.example.amnezia.controlpanel.api.persistence.mapper.DeviceRowMapper;
-import org.example.amnezia.controlpanel.api.persistence.mapper.MetricPeerRowMapper;
 import org.example.amnezia.controlpanel.api.persistence.model.Device;
 import org.example.amnezia.controlpanel.api.persistence.model.MetricPeer;
-import org.example.amnezia.controlpanel.api.persistence.query.DeviceQuery;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 
-@Repository
-public class DeviceRepository {
-  private final NamedParameterJdbcTemplate jdbcTemplate;
-  private final DeviceRowMapper rowMapper;
-  private final MetricPeerRowMapper metricPeerRowMapper;
+/** Контракт доступа к данным; транзакциями управляет вызывающий сервис. */
+public interface DeviceRepository {
+  /** Ищет устройство по идентификатору. */
+  Optional<Device> find(UUID id);
 
-  public DeviceRepository(
-      @Qualifier(DatabasePins.SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
-          NamedParameterJdbcTemplate jdbcTemplate,
-      DeviceRowMapper rowMapper,
-      MetricPeerRowMapper metricPeerRowMapper) {
-    this.jdbcTemplate = jdbcTemplate;
-    this.rowMapper = rowMapper;
-    this.metricPeerRowMapper = metricPeerRowMapper;
-  }
+  /** Возвращает устройства пользователя. */
+  List<Device> byUser(UUID id);
 
-  public Optional<Device> find(UUID id) {
-    return jdbcTemplate
-        .query(
-            DeviceQuery.FIND_BY_ID.query(),
-            new MapSqlParameterSource(DEVICE_ID, id.toString()),
-            rowMapper)
-        .stream()
-        .findFirst();
-  }
+  /** Возвращает все устройства. */
+  List<Device> all();
 
-  public List<Device> byUser(UUID id) {
-    return jdbcTemplate.query(
-        DeviceQuery.FIND_BY_USER_ID.query(),
-        new MapSqlParameterSource(USER_ID, id.toString()),
-        rowMapper);
-  }
+  /** Возвращает данные пиров для сбора метрик. */
+  List<MetricPeer> metricPeers();
 
-  public List<Device> all() {
-    return jdbcTemplate.query(DeviceQuery.FIND_ALL.query(), new MapSqlParameterSource(), rowMapper);
-  }
+  /** Считает устройства пользователя. */
+  long count(UUID userId);
 
-  public List<MetricPeer> metricPeers() {
-    return jdbcTemplate.query(
-        DeviceQuery.FIND_METRIC_PEERS.query(), new MapSqlParameterSource(), metricPeerRowMapper);
-  }
+  /** Считает все устройства. */
+  long count();
 
-  public long count(UUID userId) {
-    return jdbcTemplate.queryForObject(
-        DeviceQuery.COUNT_BY_USER_ID.query(),
-        new MapSqlParameterSource(USER_ID, userId.toString()),
-        Long.class);
-  }
+  /** Сохраняет устройство. */
+  void insert(Device device);
 
-  public long count() {
-    return jdbcTemplate.queryForObject(
-        DeviceQuery.COUNT.query(), new MapSqlParameterSource(), Long.class);
-  }
+  /** Удаляет ссылки на конфигурацию и устройство в транзакции вызывающего сервиса. */
+  void delete(UUID id);
 
-  public void insert(Device device) {
-    var params =
-        new MapSqlParameterSource(DEVICE_ID, device.id().toString())
-            .addValue(USER_ID, device.userId().toString())
-            .addValue(NAME, device.name())
-            .addValue(VPN_IP, device.vpnIp())
-            .addValue(PUBLIC_KEY, device.publicKey())
-            .addValue(PRIVATE_KEY_ENCRYPTED, device.privateKeyEncrypted())
-            .addValue(CREATED_AT, device.createdAt().toString());
-    jdbcTemplate.update(DeviceQuery.INSERT.query(), params);
-  }
-
-  public void delete(UUID id) {
-    var params = new MapSqlParameterSource(DEVICE_ID, id.toString());
-    jdbcTemplate.update(DeviceQuery.DELETE_LINKS.query(), params);
-    jdbcTemplate.update(DeviceQuery.DELETE.query(), params);
-  }
+  /** Обновляет имя и значок; возвращает признак найденного устройства. */
+  boolean updateMetadata(UUID id, String name, Device.Icon icon);
 }

@@ -8,4 +8,8 @@
     <include file="001-init-schema.sql" relativeToChangelogFile="true"/>
 
     <include file="002-refresh-and-integrity.sql" relativeToChangelogFile="true"/>
+    <include file="003-device-icon.sql" relativeToChangelogFile="true"/>
+    <include file="004-device-tv.sql" relativeToChangelogFile="true"/>
+    <include file="005-vpn-migration.sql" relativeToChangelogFile="true"/>
+    <include file="006-vpn-server-settings.sql" relativeToChangelogFile="true"/>
 </databaseChangeLog>

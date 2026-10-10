@@ -1,0 +1,1 @@
+DELETE FROM vpn_server_settings

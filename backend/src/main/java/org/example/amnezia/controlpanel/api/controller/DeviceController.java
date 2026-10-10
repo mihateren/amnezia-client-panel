@@ -6,6 +6,7 @@ import org.example.amnezia.controlpanel.api.rest.api.DevicesApi;
 import org.example.amnezia.controlpanel.api.rest.model.CreateDeviceRequest;
 import org.example.amnezia.controlpanel.api.rest.model.Device;
 import org.example.amnezia.controlpanel.api.rest.model.DevicePage;
+import org.example.amnezia.controlpanel.api.rest.model.UpdateDeviceRequest;
 import org.example.amnezia.controlpanel.api.service.DeviceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +28,13 @@ public class DeviceController implements DevicesApi {
   public ResponseEntity<Device> createDevice(CreateDeviceRequest request) {
     var command = context.validated(mapper.command(request));
     return ResponseEntity.status(201)
-        .body(mapper.device(service.create(context.actor(), command.name())));
+        .body(mapper.device(service.create(context.actor(), command.name(), command.icon())));
+  }
+
+  @Override
+  public ResponseEntity<Device> updateMyDevice(UUID deviceId, UpdateDeviceRequest request) {
+    var command = context.validated(mapper.command(request));
+    return ResponseEntity.ok(mapper.device(service.update(context.actor(), deviceId, command)));
   }
 
   @Override

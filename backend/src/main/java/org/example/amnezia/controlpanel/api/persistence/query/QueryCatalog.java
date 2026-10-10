@@ -12,6 +12,8 @@ public final class QueryCatalog {
 
   public static List<QueryHolder> all() {
     return Stream.of(
+            VpnMigrationQuery.values(),
+            VpnServerQuery.values(),
             UserQuery.values(),
             InvitationQuery.values(),
             DeviceQuery.values(),

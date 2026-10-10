@@ -4,6 +4,8 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +36,8 @@ public class VpnMonitor implements HealthIndicator {
 
   private final Map<UUID, PeerMeters> peerMeters = new HashMap<>();
   private volatile Map<String, PeerRuntime> runtime;
+  private Instant firstFailure;
+  private volatile boolean unavailable;
   private final java.util.concurrent.locks.ReentrantLock refreshLock =
       new java.util.concurrent.locks.ReentrantLock();
 
@@ -76,6 +80,8 @@ public class VpnMonitor implements HealthIndicator {
     var now = clock.instant();
     try {
       runtime = vpn.runtime();
+      firstFailure = null;
+      unavailable = false;
       up.set(1);
       total.set(runtime.size());
       active.set(
@@ -83,6 +89,10 @@ public class VpnMonitor implements HealthIndicator {
               .filter(p -> p.online(now, config.vpn().handshakeThreshold()))
               .count());
     } catch (RuntimeException e) {
+      var failedAt = clock.instant();
+      if (firstFailure == null) firstFailure = failedAt;
+      else if (Duration.between(firstFailure, failedAt).compareTo(Duration.ofMinutes(1)) >= 0)
+        unavailable = true;
       runtime = null;
       up.set(0);
       total.set(0);
@@ -145,6 +155,11 @@ public class VpnMonitor implements HealthIndicator {
         .tag("peer_name", device.name())
         .tag("user_name", device.userName())
         .register(metrics);
+  }
+
+  /** Cached assessment only: user requests must never trigger an SSH probe. */
+  public boolean unavailable() {
+    return unavailable;
   }
 
   public Map<String, PeerRuntime> runtime() {

@@ -14,6 +14,8 @@ public class FakeVpnGateway implements VpnGateway {
     INVALID_CONFIG
   }
 
+  public final java.util.concurrent.atomic.AtomicInteger runtimeCalls =
+      new java.util.concurrent.atomic.AtomicInteger();
   public volatile Failure failure = Failure.NONE;
   public volatile String config = initial();
   public volatile Map<String, PeerRuntime> peers = Map.of();
@@ -65,6 +67,7 @@ public class FakeVpnGateway implements VpnGateway {
 
   @Override
   public Map<String, PeerRuntime> runtime() {
+    runtimeCalls.incrementAndGet();
     if (failure == Failure.SSH) throw ApiException.vpn();
     return peers;
   }

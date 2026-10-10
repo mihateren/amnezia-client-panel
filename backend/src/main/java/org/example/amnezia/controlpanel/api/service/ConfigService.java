@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import org.example.amnezia.controlpanel.api.audit.AuditService;
 import org.example.amnezia.controlpanel.api.config.AppProperties;
+import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.example.amnezia.controlpanel.api.exception.ApiException;
 import org.example.amnezia.controlpanel.api.persistence.model.ConfigLink;
 import org.example.amnezia.controlpanel.api.persistence.model.Device;
@@ -27,11 +28,14 @@ import org.example.amnezia.controlpanel.api.persistence.repository.UserRepositor
 import org.example.amnezia.controlpanel.api.security.Secrets;
 import org.example.amnezia.controlpanel.api.vpn.AwgConfig;
 import org.example.amnezia.controlpanel.api.vpn.VpnGateway;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ConfigService {
+  private final VpnServerSettings servers;
+  private final VpnMigrationService migration;
   private final DeviceService service;
   private final DeviceRepository devices;
   private final UserRepository users;
@@ -45,6 +49,8 @@ public class ConfigService {
   private final AuditService audit;
 
   public ConfigService(
+      VpnServerSettings servers,
+      VpnMigrationService migration,
       DeviceService service,
       DeviceRepository devices,
       UserRepository users,
@@ -54,8 +60,10 @@ public class ConfigService {
       AppProperties config,
       Clock clock,
       ReentrantLock lock,
-      TransactionTemplate tx,
+      @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       AuditService audit) {
+    this.servers = servers;
+    this.migration = migration;
     this.service = service;
     this.devices = devices;
     this.users = users;
@@ -90,6 +98,7 @@ public class ConfigService {
   }
 
   private String generate(Device device) {
+    migration.requireConfig(device);
     var owner = users.find(device.userId()).orElseThrow(ApiException::notFound);
     if (owner.status() != User.Status.ACTIVE) throw ApiException.notFound();
     var parsed = AwgConfig.parse(vpn.readConfig());
@@ -113,7 +122,7 @@ public class ConfigService {
         .append("\nPresharedKey = ")
         .append(parsed.peerPsk(device.publicKey()))
         .append("\nEndpoint = ")
-        .append(config.vpn().endpoint())
+        .append(servers.endpoint())
         .append("\nAllowedIPs = ")
         .append(config.vpn().allowedIps())
         .append("\nPersistentKeepalive = 25\n");
@@ -148,6 +157,7 @@ public class ConfigService {
     lock.lock();
     try {
       var device = service.owned(actor, id);
+      migration.requireConfig(device);
       if (users.find(device.userId()).orElseThrow(ApiException::notFound).status()
           != User.Status.ACTIVE) throw ApiException.notFound();
       var now = clock.instant();

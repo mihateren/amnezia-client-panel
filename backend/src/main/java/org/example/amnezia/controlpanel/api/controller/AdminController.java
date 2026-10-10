@@ -10,6 +10,7 @@ import org.example.amnezia.controlpanel.api.rest.model.AdminDeviceDetails;
 import org.example.amnezia.controlpanel.api.rest.model.AdminDevicePage;
 import org.example.amnezia.controlpanel.api.rest.model.AdminUserDetails;
 import org.example.amnezia.controlpanel.api.rest.model.DashboardResponse;
+import org.example.amnezia.controlpanel.api.rest.model.DashboardSummary;
 import org.example.amnezia.controlpanel.api.rest.model.DeviceStatus;
 import org.example.amnezia.controlpanel.api.rest.model.UpdateUserStatusRequest;
 import org.example.amnezia.controlpanel.api.rest.model.UserPage;
@@ -84,6 +85,11 @@ public class AdminController implements UsersApi, AdminDevicesApi, AdminDashboar
   public ResponseEntity<Void> deleteAdminDevice(UUID deviceId) {
     devices.delete(context.actor(), deviceId);
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<DashboardSummary> getAdminDashboardSummary() {
+    return ResponseEntity.ok(mapper.summary(service.dashboardSummary(context.actor())));
   }
 
   @Override

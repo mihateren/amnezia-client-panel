@@ -8,6 +8,7 @@ import org.example.amnezia.controlpanel.api.rest.model.AdminDevicePage;
 import org.example.amnezia.controlpanel.api.rest.model.AdminUser;
 import org.example.amnezia.controlpanel.api.rest.model.AdminUserDetails;
 import org.example.amnezia.controlpanel.api.rest.model.DashboardResponse;
+import org.example.amnezia.controlpanel.api.rest.model.DashboardSummary;
 import org.example.amnezia.controlpanel.api.rest.model.UserPage;
 import org.example.amnezia.controlpanel.api.rest.model.UserStatus;
 import org.example.amnezia.controlpanel.api.rest.model.VpnState;
@@ -29,6 +30,8 @@ public interface AdminApiMapper {
   AdminDevicePage devices(PageResponse<AdminDtos.AdminDevice> result);
 
   User.Status status(UserStatus status);
+
+  DashboardSummary summary(AdminDtos.DashboardSummary result);
 
   DashboardResponse dashboard(AdminDtos.Dashboard result);
 

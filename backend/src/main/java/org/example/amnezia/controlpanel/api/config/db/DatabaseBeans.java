@@ -3,7 +3,7 @@ package org.example.amnezia.controlpanel.api.config.db;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class DatabasePins {
+public class DatabaseBeans {
 
   private static final String DATA_SOURCE_PROPERTIES = ".DataSourceProperties";
   private static final String DATA_SOURCE = ".DataSource";
@@ -20,4 +20,8 @@ public class DatabasePins {
   public static final String SQLITE_NAMED_JDBC_TEMPLATE_BEAN = SQLITE_PREFIX + NAMED_JDBC_TEMPLATE;
   public static final String SQLITE_TX_MANAGER_BEAN = SQLITE_PREFIX + TRANSACTION_MANAGER;
   public static final String SQLITE_LIQUIBASE_BEAN = SQLITE_PREFIX + LIQUIBASE;
+
+  // Preserve the existing bean names for infrastructure consumers.
+  public static final String SQLITE_JDBC_TEMPLATE_BEAN = "jdbcTemplate";
+  public static final String SQLITE_TX_TEMPLATE_BEAN = "transactions";
 }

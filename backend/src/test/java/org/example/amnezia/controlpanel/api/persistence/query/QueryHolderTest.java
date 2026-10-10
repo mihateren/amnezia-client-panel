@@ -15,6 +15,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
 class QueryHolderTest {
   private static final Map<QueryHolder, Set<String>> EXPECTED =
       Map.ofEntries(
+          entry(VpnMigrationQuery.FIND, ""),
+          entry(VpnMigrationQuery.UPDATE, "generation maintenance originalIp"),
+          entry(VpnServerQuery.FIND, ""),
+          entry(VpnServerQuery.SAVE, "ip sshPort username privateKeyEncrypted hostKey vpnPort"),
           entry(DatabaseMetricQuery.DATABASE_STORAGE, ""),
           entry(DatabaseMetricQuery.TABLE_STORAGE, ""),
           entry(UserQuery.FIND_BY_ID, "userId"),
@@ -23,6 +27,8 @@ class QueryHolderTest {
               UserQuery.INSERT,
               "userId internalName nickname passwordHash role status createdAt updatedAt"),
           entry(UserQuery.COUNT, ""),
+          entry(UserQuery.UPDATE_NICKNAME, "userId nickname now"),
+          entry(UserQuery.UPDATE_PASSWORD, "userId passwordHash now"),
           entry(UserQuery.UPDATE_ACTIVITY, "userId now"),
           entry(UserQuery.UPDATE_STATUS, "userId status now"),
           entry(UserQuery.DELETE, "userId"),
@@ -40,7 +46,8 @@ class QueryHolderTest {
           entry(DeviceQuery.COUNT, ""),
           entry(
               DeviceQuery.INSERT,
-              "deviceId userId name vpnIp publicKey privateKeyEncrypted createdAt"),
+              "deviceId userId name icon vpnIp publicKey privateKeyEncrypted createdAt generation"),
+          entry(DeviceQuery.UPDATE_METADATA, "deviceId name icon"),
           entry(DeviceQuery.DELETE_LINKS, "deviceId"),
           entry(DeviceQuery.DELETE, "deviceId"),
           entry(ConfigLinkQuery.INSERT, "id deviceId tokenHash createdAt expiresAt"),

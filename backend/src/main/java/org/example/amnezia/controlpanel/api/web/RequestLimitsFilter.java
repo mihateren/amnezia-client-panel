@@ -34,7 +34,11 @@ public class RequestLimitsFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest req, HttpServletResponse res, FilterChain chain)
       throws ServletException, IOException {
-    if (req.getContentLengthLong() > MAX_BODY) {
+    int maxBody =
+        "PUT".equals(req.getMethod()) && "/api/v1/admin/vpn/server".equals(req.getRequestURI())
+            ? 64 * 1024
+            : MAX_BODY;
+    if (req.getContentLengthLong() > maxBody) {
       errors.write(res, 413, "PAYLOAD_TOO_LARGE", "Request body too large");
       return;
     }
@@ -69,7 +73,7 @@ public class RequestLimitsFilter extends OncePerRequestFilter {
               @Override
               public int read() throws IOException {
                 int value = original.read();
-                if (value != -1 && ++bytes > MAX_BODY)
+                if (value != -1 && ++bytes > maxBody)
                   throw new IOException("Request body limit exceeded");
                 return value;
               }

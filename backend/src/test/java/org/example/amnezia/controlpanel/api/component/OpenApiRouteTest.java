@@ -31,6 +31,8 @@ class OpenApiRouteTest extends BaseComponentTest {
             org.example.amnezia.controlpanel.api.controller.DeviceController.class,
             org.example.amnezia.controlpanel.api.controller.ConfigController.class,
             org.example.amnezia.controlpanel.api.controller.AdminController.class,
+            org.example.amnezia.controlpanel.api.controller.VpnServerController.class,
+            org.example.amnezia.controlpanel.api.controller.VpnMigrationController.class,
             org.example.amnezia.controlpanel.api.controller.AuditController.class);
     controllers.forEach(
         controller -> {
@@ -69,7 +71,7 @@ class OpenApiRouteTest extends BaseComponentTest {
           (path, operations) -> {
             if (!path.startsWith("/api/")) return;
             operations.keySet().stream()
-                .filter(method -> Set.of("get", "post", "patch", "delete").contains(method))
+                .filter(method -> Set.of("get", "post", "put", "patch", "delete").contains(method))
                 .forEach(
                     method ->
                         assertThat(actual).contains(method.toUpperCase(Locale.ROOT) + " " + path));

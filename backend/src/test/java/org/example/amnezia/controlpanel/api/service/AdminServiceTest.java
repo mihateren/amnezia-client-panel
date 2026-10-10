@@ -27,6 +27,7 @@ class AdminServiceTest {
   private final DeviceService deviceService = mock(DeviceService.class);
   private final AdminService service =
       new AdminService(
+          mock(VpnMigrationService.class),
           users,
           devices,
           null,
@@ -41,6 +42,17 @@ class AdminServiceTest {
           null,
           null);
   private final UUID admin = UUID.randomUUID();
+
+  @Test
+  void shouldReadSummaryWithoutVpnDependencies() {
+    authorize();
+    when(users.count()).thenReturn(8L);
+    when(devices.count()).thenReturn(12L);
+    var summary = service.dashboardSummary(admin);
+    assertThat(summary.usersTotal()).isEqualTo(8);
+    assertThat(summary.devicesTotal()).isEqualTo(12);
+    org.mockito.Mockito.verifyNoInteractions(deviceService);
+  }
 
   @Test
   void shouldPreserveOwnerDetailsStatusFilteringOrderAndPagination() {

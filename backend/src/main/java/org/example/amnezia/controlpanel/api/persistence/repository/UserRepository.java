@@ -1,122 +1,43 @@
 package org.example.amnezia.controlpanel.api.persistence.repository;
 
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.CREATED_AT;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.INTERNAL_NAME;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.LIMIT;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.NICKNAME;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.NOW;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.OFFSET;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.PASSWORD_HASH;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.ROLE;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.SEARCH;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.STATUS;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.UPDATED_AT;
-import static org.example.amnezia.controlpanel.api.persistence.query.QueryParameter.USER_ID;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.example.amnezia.controlpanel.api.config.db.DatabasePins;
-import org.example.amnezia.controlpanel.api.persistence.mapper.UserRowMapper;
 import org.example.amnezia.controlpanel.api.persistence.model.User;
-import org.example.amnezia.controlpanel.api.persistence.query.UserQuery;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 
-@Repository
-public class UserRepository {
-  private final NamedParameterJdbcTemplate jdbcTemplate;
-  private final UserRowMapper rowMapper;
+/** Контракт доступа к данным; транзакциями управляет вызывающий сервис. */
+public interface UserRepository {
+  /** Ищет пользователя по идентификатору. */
+  Optional<User> find(UUID id);
 
-  public UserRepository(
-      @Qualifier(DatabasePins.SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
-          NamedParameterJdbcTemplate jdbcTemplate,
-      UserRowMapper rowMapper) {
-    this.jdbcTemplate = jdbcTemplate;
-    this.rowMapper = rowMapper;
-  }
+  /** Ищет пользователя по никнейму. */
+  Optional<User> findByNickname(String nickname);
 
-  public Optional<User> find(UUID id) {
-    return jdbcTemplate
-        .query(
-            UserQuery.FIND_BY_ID.query(),
-            new MapSqlParameterSource(USER_ID, id.toString()),
-            rowMapper)
-        .stream()
-        .findFirst();
-  }
+  /** Сохраняет пользователя. */
+  void insert(User user);
 
-  public Optional<User> findByNickname(String nickname) {
-    return jdbcTemplate
-        .query(
-            UserQuery.FIND_BY_NICKNAME.query(),
-            new MapSqlParameterSource(NICKNAME, nickname),
-            rowMapper)
-        .stream()
-        .findFirst();
-  }
+  /** Считает всех пользователей. */
+  long count();
 
-  public void insert(User user) {
-    var params =
-        new MapSqlParameterSource()
-            .addValue(USER_ID, user.id().toString())
-            .addValue(INTERNAL_NAME, user.internalName())
-            .addValue(NICKNAME, user.nickname())
-            .addValue(PASSWORD_HASH, user.passwordHash())
-            .addValue(ROLE, user.role().name())
-            .addValue(STATUS, user.status().name())
-            .addValue(CREATED_AT, user.createdAt().toString())
-            .addValue(UPDATED_AT, user.updatedAt().toString());
-    jdbcTemplate.update(UserQuery.INSERT.query(), params);
-  }
+  /** Обновляет время активности пользователя. */
+  void activity(UUID id, Instant now);
 
-  public long count() {
-    return jdbcTemplate.queryForObject(
-        UserQuery.COUNT.query(), new MapSqlParameterSource(), Long.class);
-  }
+  /** Обновляет статус пользователя. */
+  void status(UUID id, User.Status status, Instant now);
 
-  public void activity(UUID id, Instant now) {
-    jdbcTemplate.update(
-        UserQuery.UPDATE_ACTIVITY.query(),
-        new MapSqlParameterSource(USER_ID, id.toString()).addValue(NOW, now.toString()));
-  }
+  /** Обновляет никнейм пользователя. */
+  void nickname(UUID id, String nickname, Instant now);
 
-  public void status(UUID id, User.Status status, Instant now) {
-    jdbcTemplate.update(
-        UserQuery.UPDATE_STATUS.query(),
-        new MapSqlParameterSource(USER_ID, id.toString())
-            .addValue(STATUS, status.name())
-            .addValue(NOW, now.toString()));
-  }
+  /** Обновляет хеш пароля пользователя. */
+  void password(UUID id, String hash, Instant now);
 
-  public void delete(UUID id) {
-    jdbcTemplate.update(
-        UserQuery.DELETE.query(), new MapSqlParameterSource(USER_ID, id.toString()));
-  }
+  /** Удаляет пользователя. */
+  void delete(UUID id);
 
-  public List<User> list(User.Status status, String search, int limit, long offset) {
-    return jdbcTemplate.query(
-        UserQuery.FIND_ALL.query(),
-        filters(status, search).addValue(LIMIT, limit).addValue(OFFSET, offset),
-        rowMapper);
-  }
+  /** Возвращает пользователей с фильтрацией и пагинацией. */
+  List<User> list(User.Status status, String search, int limit, long offset);
 
-  public long count(User.Status status, String search) {
-    return jdbcTemplate.queryForObject(
-        UserQuery.COUNT_FILTERED.query(), filters(status, search), Long.class);
-  }
-
-  private MapSqlParameterSource filters(User.Status status, String search) {
-    return new MapSqlParameterSource(STATUS, status == null ? null : status.name())
-        .addValue(SEARCH, pattern(search));
-  }
-
-  private static String pattern(String value) {
-    return "%"
-        + (value == null ? "" : value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_"))
-        + "%";
-  }
+  /** Считает пользователей с указанными фильтрами. */
+  long count(User.Status status, String search);
 }

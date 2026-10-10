@@ -1,0 +1,3 @@
+CREATE TRIGGER test_block_profile_audit BEFORE INSERT ON audit_log
+WHEN NEW.event_type IN ('USER_NICKNAME_CHANGED','USER_PASSWORD_CHANGED')
+BEGIN SELECT RAISE(ABORT, 'Profile audit blocked'); END
