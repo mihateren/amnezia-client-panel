@@ -5,8 +5,15 @@ export default defineConfig({
   use: {
     baseURL: process.env.PANEL_TEST_URL || "http://127.0.0.1:5173",
     browserName: "chromium",
-    channel: "msedge",
+    channel: process.env.CI ? undefined : "msedge",
   },
   reporter: "list",
   workers: 1,
+  webServer: process.env.CI
+    ? {
+        command: "pnpm dev",
+        url: "http://127.0.0.1:5173",
+        reuseExistingServer: false,
+      }
+    : undefined,
 });

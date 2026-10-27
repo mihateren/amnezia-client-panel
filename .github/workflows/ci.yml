@@ -1,0 +1,101 @@
+name: Panel CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Clean build and real SQLite tests
+        working-directory: backend
+        run: bash gradlew --no-daemon clean build testcontainersTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-reports
+          path: |
+            backend/build/reports/
+            backend/build/test-results/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/build/libs/amnezia-control-panel.jar
+          if-no-files-found: error
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm install --global pnpm@11.19.0
+      - working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - working-directory: frontend
+        run: pnpm api:generate && git diff --exit-code -- src/schema.d.ts
+      - working-directory: frontend
+        run: pnpm test && pnpm build
+      - working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - working-directory: frontend
+        run: pnpm test:e2e tests/app.spec.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+
+  compose:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate monitoring definitions
+        run: node backend/monitoring/validate-dashboards.mjs
+      - name: Docker integration, persistence, authenticated scraping and provisioning
+        shell: pwsh
+        run: ./backend/scripts/smoke-compose.ps1
+
+  release:
+    needs: [backend, frontend, compose]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/build/libs/
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+      - name: Package tested application without secrets
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > REVISION
+          tar -czf panel-release.tar.gz REVISION .dockerignore .env.example docker-compose*.yml deploy backend/build/libs/amnezia-control-panel.jar backend/docker backend/monitoring frontend/dist frontend/nginx.conf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panel-release-${{ github.sha }}
+          path: panel-release.tar.gz
+          retention-days: 14

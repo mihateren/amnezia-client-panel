@@ -1,0 +1,10 @@
+# Use with the tested release bundle from CI, after the base and production files.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend.Dockerfile
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile

@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+secrets
+**/local
+**/node_modules
+**/.gradle
+**/test-results
+**/playwright-report
+backend/build/*
+!backend/build/libs

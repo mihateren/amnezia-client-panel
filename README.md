@@ -2,6 +2,9 @@
 
 React / TypeScript frontend and Java 25 / Spring Boot 4.1 backend.
 
+Production HTTPS deployment, release artifacts and GitHub Actions CI are documented
+in [deploy/README.md](deploy/README.md).
+
 ```text
 amnezia-client-panel/
 ├── backend/

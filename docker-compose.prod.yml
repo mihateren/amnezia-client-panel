@@ -1,0 +1,53 @@
+# Apply after docker-compose.yml; secrets stay in the server's .env and secrets/.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      PANEL_HOST: ${PANEL_HOST:?Set PANEL_HOST}
+      GRAFANA_HOST: ${GRAFANA_HOST:?Set GRAFANA_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+      grafana:
+        condition: service_started
+    mem_limit: 128m
+    security_opt: [no-new-privileges:true]
+    logging: &bounded-logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  frontend:
+    mem_limit: 64m
+    logging: *bounded-logs
+  backend:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError
+    mem_limit: 768m
+    logging: *bounded-logs
+  prometheus:
+    environment:
+      PROMETHEUS_RETENTION_TIME: 7d
+      PROMETHEUS_RETENTION_SIZE: 512MB
+    mem_limit: 256m
+    logging: *bounded-logs
+  grafana:
+    environment:
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      # Enable only after configuring and authorizing a real notification destination.
+      GF_UNIFIED_ALERTING_EXECUTE_ALERTS: ${GRAFANA_EXECUTE_ALERTS:-false}
+    mem_limit: 384m
+    logging: *bounded-logs
+volumes:
+  caddy-data:
+  caddy-config:
