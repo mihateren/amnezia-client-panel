@@ -62,6 +62,8 @@ and Node never run on the production VPS. The base Compose file alone still supp
 source builds for local development. Production container memory is bounded for a
 2 GB VPS, logs rotate at 3 × 10 MB per service, Prometheus retains at most 7 days or
 512 MB of persisted blocks (WAL/head data may temporarily exceed this).
+If Ubuntu's default mirror is slow from the VPS, set `UBUNTU_MIRROR` to the
+provider's Ubuntu mirror URL. Package signature verification remains enabled.
 
 ## Updates and recovery
 

@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: deploy/backend.Dockerfile
+      args:
+        UBUNTU_MIRROR: ${UBUNTU_MIRROR:-}
   frontend:
     build:
       context: .

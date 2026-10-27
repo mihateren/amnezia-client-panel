@@ -1,6 +1,10 @@
 # Runtime-only build from the tested release bundle; no Gradle on the production VPS.
 FROM eclipse-temurin:25-jre
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-client curl \
+ARG UBUNTU_MIRROR
+RUN if [ -n "$UBUNTU_MIRROR" ]; then \
+      sed -i "s|http://archive.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g; s|http://security.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g" /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && apt-get update && apt-get install -y --no-install-recommends openssh-client curl \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g 10001 panel && useradd -u 10001 -g panel -m panel \
     && mkdir /data && chown panel:panel /data
