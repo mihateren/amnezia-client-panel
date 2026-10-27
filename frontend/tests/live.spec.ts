@@ -15,7 +15,7 @@ test("real API and VPS: invitation, refresh, configuration, revocation and clean
   );
   test.setTimeout(120000);
   const settings = Object.fromEntries(
-    readFileSync("../.env", "utf8")
+    readFileSync(process.env.PANEL_TEST_ENV_FILE || "../.env", "utf8")
       .split(/\r?\n/)
       .filter((l) => l.includes("="))
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),

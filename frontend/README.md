@@ -22,3 +22,5 @@ The live browser test is opt-in and uses the ignored root `.env`:
 `$env:RUN_VPS_TESTS='1'` first). It creates a uniquely named temporary user and peer,
 checks real configuration delivery and revocation, and deletes its user in `finally`.
 Never run it against an unapproved server. The normal browser suite does not touch VPS.
+Set `PANEL_TEST_ENV_FILE` to select another ignored settings file (relative to
+`frontend/`), for example `../secrets/production.env`, without replacing local settings.
