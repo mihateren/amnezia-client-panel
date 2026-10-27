@@ -23,6 +23,8 @@ disabled. Backend, Prometheus and direct Grafana ports bind only to loopback.
 3. Disposable Docker Compose smoke: real SQLite, authentication, restart persistence,
    frontend proxy, protected Prometheus scraping, Grafana datasource, three dashboards,
    all dashboard queries and alert provisioning. It never contacts production VPN.
+   This job builds runtime images from the JAR/dist artifacts tested above and also
+   executes the PromQL fixture suite with promtool; it does not rebuild application code.
 4. Only after every check succeeds, package the tested JAR, frontend and deployment
    files into the `panel-release-<commit>` artifact (14-day retention). No secrets.
 
@@ -64,6 +66,8 @@ source builds for local development. Production container memory is bounded for 
 512 MB of persisted blocks (WAL/head data may temporarily exceed this).
 If Ubuntu's default mirror is slow from the VPS, set `UBUNTU_MIRROR` to the
 provider's Ubuntu mirror URL. Package signature verification remains enabled.
+Only the normal release, updates and security repositories are used with a custom
+mirror; optional backports are omitted because provider mirrors may not carry them.
 
 ## Updates and recovery
 

@@ -3,6 +3,7 @@ FROM eclipse-temurin:25-jre
 ARG UBUNTU_MIRROR
 RUN if [ -n "$UBUNTU_MIRROR" ]; then \
       sed -i "s|http://archive.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g; s|http://security.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g" /etc/apt/sources.list.d/ubuntu.sources; \
+      sed -i -E 's/ [a-z]+-backports//g' /etc/apt/sources.list.d/ubuntu.sources; \
     fi \
     && apt-get update && apt-get install -y --no-install-recommends openssh-client curl \
     && rm -rf /var/lib/apt/lists/* \

@@ -1,4 +1,4 @@
-param([switch]$SkipBuild)
+param([switch]$SkipBuild, [switch]$ReleaseBuild)
 $ErrorActionPreference = 'Stop'
 $workspacePath = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $projectName = 'acp-smoke-' + [Guid]::NewGuid().ToString('N').Substring(0,12)
@@ -45,6 +45,9 @@ foreach ($name in $settings.Keys) {
 }
 [IO.File]::WriteAllLines($envFile, @($settings.GetEnumerator() | ForEach-Object { $_.Key + '=' + $_.Value }))
 $composeArgs = @('compose','--project-name',$projectName,'--env-file',$envFile,'-f',(Join-Path $workspacePath 'docker-compose.yml'))
+if ($ReleaseBuild) {
+    $composeArgs += @('-f', (Join-Path $workspacePath 'docker-compose.release.yml'))
+}
 function Service-Url([string]$Service,[string]$Port) {
     $mapping = & docker @composeArgs port $Service $Port
     if ($LASTEXITCODE -ne 0) { throw "Cannot resolve port for $Service" }

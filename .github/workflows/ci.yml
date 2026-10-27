@@ -70,11 +70,21 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/build/libs/
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
       - name: Validate monitoring definitions
         run: node backend/monitoring/validate-dashboards.mjs
+      - name: Verify PromQL fixtures
+        run: docker run --rm -v "$PWD/backend/build/monitoring-check:/checks:ro" --entrypoint /bin/promtool prom/prometheus:v3.13.3 test rules /checks/promql-tests.json
       - name: Docker integration, persistence, authenticated scraping and provisioning
         shell: pwsh
-        run: ./backend/scripts/smoke-compose.ps1
+        run: ./backend/scripts/smoke-compose.ps1 -ReleaseBuild
 
   release:
     needs: [backend, frontend, compose]
