@@ -46,7 +46,14 @@ services:
       GF_SECURITY_COOKIE_SAMESITE: strict
       # Enable only after configuring and authorizing a real notification destination.
       GF_UNIFIED_ALERTING_EXECUTE_ALERTS: ${GRAFANA_EXECUTE_ALERTS:-false}
-    mem_limit: 384m
+    # Include the working set and filesystem cache; 384m causes reclaim thrashing.
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 180s
+      retries: 5
     logging: *bounded-logs
 volumes:
   caddy-data:

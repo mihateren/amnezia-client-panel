@@ -64,6 +64,10 @@ and Node never run on the production VPS. The base Compose file alone still supp
 source builds for local development. Production container memory is bounded for a
 2 GB VPS, logs rotate at 3 × 10 MB per service, Prometheus retains at most 7 days or
 512 MB of persisted blocks (WAL/head data may temporarily exceed this).
+Grafana has a 768 MB limit and a readiness check with a three-minute initial grace
+period. A 384 MB limit caused severe filesystem-cache reclaim and HTTP timeouts
+on this VPS even though the process did not get OOM-killed. Check container memory
+pressure as well as RSS when diagnosing slow dashboards.
 If Ubuntu's default mirror is slow from the VPS, set `UBUNTU_MIRROR` to the
 provider's Ubuntu mirror URL. Package signature verification remains enabled.
 Only the normal release, updates and security repositories are used with a custom
