@@ -99,6 +99,17 @@ public final class AwgConfig {
         .anyMatch(s -> single(s, "PublicKey").equals(publicKey));
   }
 
+  public boolean peerHasIp(String publicKey, String ip) {
+    return sections.stream()
+        .filter(s -> s.name().equals("Peer") && single(s, "PublicKey").equals(publicKey))
+        .anyMatch(
+            s ->
+                s.fields().getOrDefault("AllowedIPs", List.of()).stream()
+                    .flatMap(v -> java.util.Arrays.stream(v.split(",")))
+                    .map(String::trim)
+                    .anyMatch(v -> v.equals(ip + "/32")));
+  }
+
   public String remove(Set<String> publicKeys) {
     var text = new StringBuilder(original);
     for (var section : sections.reversed()) {
@@ -182,6 +193,25 @@ public final class AwgConfig {
       if (excluded.stream().noneMatch(n -> n.contains(candidate))) return format(ip);
     }
     throw ApiException.conflict("VPN_IP_EXHAUSTED", "No free VPN address");
+  }
+
+  public String subnet() {
+    return sections.getFirst().fields().get("Address").stream()
+        .flatMap(v -> java.util.Arrays.stream(v.split(",")))
+        .map(String::trim)
+        .filter(v -> !v.contains(":"))
+        .findFirst()
+        .orElseThrow(ApiException::vpn);
+  }
+
+  public int listenPort() {
+    try {
+      int port = Integer.parseInt(single(sections.getFirst(), "ListenPort"));
+      if (port < 1 || port > 65535) throw ApiException.vpn();
+      return port;
+    } catch (NumberFormatException e) {
+      throw ApiException.vpn();
+    }
   }
 
   private record Network(long address, int prefix) {

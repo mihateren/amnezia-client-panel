@@ -95,7 +95,9 @@ public class DeviceRepositoryImpl implements DeviceRepository {
             .addValue(PUBLIC_KEY, device.publicKey())
             .addValue(PRIVATE_KEY_ENCRYPTED, device.privateKeyEncrypted())
             .addValue(CREATED_AT, device.createdAt().toString())
-            .addValue("generation", device.generation());
+            .addValue("generation", device.generation())
+            .addValue("serverId", device.serverId() == null ? null : device.serverId().toString())
+            .addValue("clientType", device.clientType().name());
     jdbcTemplate.update(DeviceQuery.INSERT.query(), params);
   }
 

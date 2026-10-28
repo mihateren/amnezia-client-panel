@@ -117,7 +117,12 @@ public class SecurityConfig {
         return;
       }
       var header = req.getHeader("Authorization");
-      if (header != null) {
+      var path = req.getServletPath();
+      boolean credentialEndpoint =
+          path.equals("/api/v1/auth/login")
+              || path.equals("/api/v1/auth/refresh")
+              || path.startsWith("/api/v1/invitations/");
+      if (header != null && !credentialEndpoint) {
         try {
           if (!header.startsWith("Bearer ") || header.length() > 4096)
             throw ApiException.unauthorized();

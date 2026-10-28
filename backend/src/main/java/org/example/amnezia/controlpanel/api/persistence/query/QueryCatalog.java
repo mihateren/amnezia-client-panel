@@ -14,6 +14,7 @@ public final class QueryCatalog {
     return Stream.of(
             VpnMigrationQuery.values(),
             VpnServerQuery.values(),
+            ManagedVpnServerQuery.values(),
             UserQuery.values(),
             InvitationQuery.values(),
             DeviceQuery.values(),

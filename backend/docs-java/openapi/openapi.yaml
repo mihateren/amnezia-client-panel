@@ -5,7 +5,7 @@ info:
   version: 1.0.0
   description: |
     Backend API платформы управления AmneziaVPN / AmneziaWG.
-    
+
     API предназначено для:
     - управления пользователями и приглашениями;
     - аутентификации;
@@ -45,6 +45,86 @@ security:
   - bearerAuth: [ ]
 
 paths:
+  /api/v1/vpn-servers:
+    get:
+      tags: [VPN Servers]
+      operationId: listVpnServers
+      responses:
+        '200':
+          description: VPN server catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicVpnServer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/admin/vpn-servers:
+    get:
+      tags: [VPN Servers]
+      operationId: listManagedVpnServers
+      responses:
+        '200':
+          description: VPN server catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ManagedVpnServer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [VPN Servers]
+      operationId: createVpnServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVpnServer'
+      responses:
+        '201':
+          description: VPN server catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedVpnServer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/admin/vpn-servers/{serverId}:
+    patch:
+      tags: [VPN Servers]
+      operationId: updateManagedVpnServer
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateManagedVpnServer'
+      responses:
+        '200':
+          description: VPN server catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedVpnServer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   # ============================================================
   # Authentication
@@ -396,6 +476,9 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
+        - name: serverId
+          in: query
+          schema: {type: string, format: uuid}
       responses:
         '200':
           description: User devices
@@ -413,7 +496,7 @@ paths:
       operationId: createDevice
       description: |
         Creates a VPN peer on the configured AmneziaWG server.
-        
+
         The operation is executed under an application-level VPN lock.
         The server configuration is read from the VDS before IP allocation.
       requestBody:
@@ -603,7 +686,7 @@ paths:
       operationId: createDeviceConfigLink
       description: |
         Creates a link that can be used to import the VPN configuration.
-        
+
         The returned link is a secret and must not be written to logs
         or audit records.
       parameters:
@@ -1253,7 +1336,12 @@ components:
       type: object
       required:
         - name
+        - serverId
+        - clientType
       properties:
+        serverId: {type: string, format: uuid}
+        clientType:
+          $ref: '#/components/schemas/ConnectionClientType'
         name:
           type: string
           minLength: 1
@@ -1286,6 +1374,44 @@ components:
         - ROUTER
         - TV
 
+    ConnectionClientType:
+      type: string
+      enum: [AMNEZIA_VPN, AMNEZIA_WG]
+
+    PublicVpnServer:
+      type: object
+      required: [id, name, enabled]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        enabled: {type: boolean}
+    ManagedVpnServer:
+      allOf:
+        - $ref: '#/components/schemas/PublicVpnServer'
+        - type: object
+          required: [ip, sshPort, username, container, vpnPort]
+          properties:
+            ip: {type: string}
+            sshPort: {type: integer}
+            username: {type: string}
+            container: {type: string}
+            vpnPort: {type: integer}
+    CreateVpnServer:
+      type: object
+      required: [name, ip, username, password]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        ip: {type: string, maxLength: 45}
+        sshPort: {type: integer, minimum: 1, maximum: 65535, default: 22}
+        username: {type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_-]*$', maxLength: 64}
+        password: {type: string, minLength: 1, maxLength: 1024, writeOnly: true}
+    UpdateManagedVpnServer:
+      type: object
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        enabled: {type: boolean}
+        password: {type: string, maxLength: 1024, writeOnly: true}
+
     DeviceStatus:
       type: string
       enum:
@@ -1306,6 +1432,10 @@ components:
         - status
         - createdAt
       properties:
+        serverId: {type: string, format: uuid}
+        serverName: {type: string}
+        clientType:
+          $ref: '#/components/schemas/ConnectionClientType'
         generation:
           type: integer
           format: int64

@@ -18,6 +18,14 @@ class QueryHolderTest {
           entry(VpnMigrationQuery.FIND, ""),
           entry(VpnMigrationQuery.UPDATE, "generation maintenance originalIp"),
           entry(VpnServerQuery.FIND, ""),
+          entry(ManagedVpnServerQuery.ALL, ""),
+          entry(ManagedVpnServerQuery.FIND, "id"),
+          entry(
+              ManagedVpnServerQuery.INSERT,
+              "id name ip sshPort username passwordEncrypted hostKey container interfaceName subnet"
+                  + " vpnPort enabled createdAt"),
+          entry(ManagedVpnServerQuery.UPDATE, "id name enabled passwordEncrypted"),
+          entry(ManagedVpnServerQuery.ADOPT_LEGACY, "id deviceId"),
           entry(VpnServerQuery.SAVE, "ip sshPort username privateKeyEncrypted hostKey vpnPort"),
           entry(DatabaseMetricQuery.DATABASE_STORAGE, ""),
           entry(DatabaseMetricQuery.TABLE_STORAGE, ""),
@@ -46,7 +54,8 @@ class QueryHolderTest {
           entry(DeviceQuery.COUNT, ""),
           entry(
               DeviceQuery.INSERT,
-              "deviceId userId name icon vpnIp publicKey privateKeyEncrypted createdAt generation"),
+              "deviceId userId name icon vpnIp publicKey privateKeyEncrypted createdAt generation"
+                  + " serverId clientType"),
           entry(DeviceQuery.UPDATE_METADATA, "deviceId name icon"),
           entry(DeviceQuery.DELETE_LINKS, "deviceId"),
           entry(DeviceQuery.DELETE, "deviceId"),

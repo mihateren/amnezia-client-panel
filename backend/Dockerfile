@@ -7,7 +7,7 @@ COPY docs-java docs-java
 RUN --mount=type=cache,target=/root/.gradle sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew --no-daemon bootJar
 
 FROM eclipse-temurin:25-jre
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-client curl \
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-client sshpass curl \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g 10001 panel && useradd -u 10001 -g panel -m panel \
     && mkdir /data && chown panel:panel /data

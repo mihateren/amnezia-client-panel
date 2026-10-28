@@ -27,6 +27,7 @@ class AdminServiceTest {
   private final DeviceService deviceService = mock(DeviceService.class);
   private final AdminService service =
       new AdminService(
+          null,
           mock(VpnMigrationService.class),
           users,
           devices,

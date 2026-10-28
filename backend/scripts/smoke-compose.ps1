@@ -9,12 +9,8 @@ if (-not $temporaryPath.StartsWith($secretsRoot + [IO.Path]::DirectorySeparatorC
 }
 $null = New-Item -ItemType Directory -Path $temporaryPath -Force
 $envFile = Join-Path $temporaryPath 'smoke.env'
-$keyFile = Join-Path $temporaryPath 'ssh_key'
-$hostsFile = Join-Path $temporaryPath 'known_hosts'
 $telegramFile = Join-Path $temporaryPath 'telegram.env'
 [IO.File]::WriteAllText($telegramFile, "TELEGRAM_BOT_TOKEN=0:smoke-test-invalid`nTELEGRAM_CHAT_ID=1`n")
-[IO.File]::WriteAllText($keyFile, '# Disposable startup test; no real VDS credentials')
-[IO.File]::WriteAllText($hostsFile, '')
 function Random-Hex { [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)) }
 $settings = [ordered]@{
     JWT_SECRET = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
@@ -25,11 +21,6 @@ $settings = [ordered]@{
     GRAFANA_ADMIN_USER = 'smoke-admin'
     GRAFANA_ADMIN_PASSWORD = Random-Hex
     PUBLIC_URL = 'http://localhost:8080'
-    VDS_HOST = '127.0.0.1'
-    SSH_TIMEOUT = 'PT1S'
-    AWG_CONTAINER = ''
-    SSH_KEY_FILE = $keyFile.Replace('\','/')
-    SSH_KNOWN_HOSTS_FILE = $hostsFile.Replace('\','/')
     FRONTEND_PORT = '0'
     BACKEND_PORT = '0'
     PROMETHEUS_PORT = '0'
@@ -150,8 +141,6 @@ try {
     $contacts = Invoke-RestMethod "$grafanaUrl/api/v1/provisioning/contact-points" -Headers $grafanaHeaders
     if (@($contacts | Where-Object { $_.uid -eq 'acp-telegram' -and $_.type -eq 'telegram' }).Count -ne 1) { throw 'Missing Telegram receiver' }
     Write-Output 'PASS: alert rules and Telegram contact point provisioned with disposable invalid test credentials'
-    $keyMode = & docker @composeArgs exec -T backend stat -c %a /tmp/panel-ssh/id_key
-    if ($LASTEXITCODE -ne 0 -or $keyMode.Trim() -ne '600') { throw 'Incorrect SSH key permissions' }
     & docker @composeArgs restart backend
     if ($LASTEXITCODE -ne 0) { throw 'Restart failed' }
     # Docker may assign a new random host port when restarting a port-0 container.

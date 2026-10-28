@@ -1,6 +1,8 @@
 package org.example.amnezia.controlpanel.api.vpn;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
+import java.util.List;
 import org.example.amnezia.controlpanel.api.config.db.DatabaseBeans;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,17 +26,38 @@ public class VpnMutation {
   }
 
   public void apply(String original, String replacement, Runnable persist) {
-    gateway.replace(original, replacement);
+    apply(List.of(new Change(gateway, original, replacement)), persist);
+  }
+
+  public record Change(VpnGateway gateway, String original, String replacement) {
+    @Override
+    public String toString() {
+      return "Change[redacted]";
+    }
+  }
+
+  public void apply(List<Change> changes, Runnable persist) {
+    var applied = new ArrayList<Change>();
     try {
-      tx.executeWithoutResult(status -> persist.run());
-    } catch (RuntimeException failure) {
-      metrics.counter("db_errors").increment();
+      for (var change : changes) {
+        change.gateway().replace(change.original(), change.replacement());
+        applied.add(change);
+      }
       try {
-        gateway.replace(replacement, original);
-      } catch (RuntimeException rollbackFailure) {
-        metrics.counter("vpn_rollback_errors").increment();
-        LoggerFactory.getLogger(getClass())
-            .error("VPN rollback failed; operator reconciliation required");
+        tx.executeWithoutResult(status -> persist.run());
+      } catch (RuntimeException failure) {
+        metrics.counter("db_errors").increment();
+        throw failure;
+      }
+    } catch (RuntimeException failure) {
+      for (var change : applied.reversed()) {
+        try {
+          change.gateway().replace(change.replacement(), change.original());
+        } catch (RuntimeException rollbackFailure) {
+          metrics.counter("vpn_rollback_errors").increment();
+          LoggerFactory.getLogger(getClass())
+              .error("VPN rollback failed; operator reconciliation required");
+        }
       }
       throw failure;
     }

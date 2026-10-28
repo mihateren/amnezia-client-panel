@@ -18,12 +18,43 @@ export class ApiError extends Error {
     super(message);
   }
 }
-async function failure(response: Response): Promise<never> {
+const messages: Record<string, string> = {
+  UNAUTHORIZED: "Сессия завершилась. Войдите снова.",
+  FORBIDDEN: "Недостаточно прав для этого действия.",
+  NOT_FOUND:
+    "Не удалось найти данные. Возможно, запись уже удалена или ссылка истекла.",
+  VALIDATION_ERROR: "Проверьте заполненные поля и повторите попытку.",
+  DEVICE_LIMIT: "Достигнут лимит: 5 устройств. Удалите ненужное устройство.",
+  NICKNAME_TAKEN: "Этот никнейм уже занят. Выберите другой.",
+  ADMIN_PROTECTED: "Нельзя отключить или удалить администратора.",
+  VPN_UNAVAILABLE:
+    "VPN-сервер недоступен. Повторите позже или выберите другой сервер.",
+  SSH_OPERATION_FAILED:
+    "Не удалось выполнить действие на VPN-сервере. Повторите позже или обратитесь к администратору.",
+  SSH_AUTH_FAILED:
+    "Не удалось войти на сервер. Проверьте логин и пароль сервера.",
+  CONFIG_CHANGED: "Настройки сервера изменились. Повторите действие.",
+  PEER_EXISTS: "Подключение уже существует. Обновите список устройств.",
+  VPN_IP_EXHAUSTED:
+    "На сервере закончились свободные адреса. Выберите другой сервер.",
+  CURRENT_PASSWORD_INVALID: "Текущий пароль неверен. Проверьте его и повторите попытку.",
+  RATE_LIMITED: "Слишком много попыток. Подождите немного и попробуйте снова.",
+};
+async function failure(response: Response, path = ""): Promise<never> {
   const data = await response.json().catch(() => ({}));
   throw new ApiError(
     response.status,
     data.code || "HTTP_ERROR",
-    data.message || "Не удалось выполнить запрос",
+    path === "/auth/login" && response.status === 401
+      ? "Не удалось войти. Проверьте пароль. Если он верный, уточните у администратора, активен ли аккаунт."
+      : messages[data.code] ||
+          (typeof data.message === "string" && /[а-яё]/i.test(data.message)
+            ? data.message
+            : response.status === 429
+              ? "Слишком много попыток. Повторите чуть позже."
+              : response.status >= 500
+                ? "Сервис временно недоступен. Повторите позже."
+                : "Не удалось выполнить действие. Обновите страницу и повторите попытку."),
     data.correlationId,
   );
 }
@@ -35,6 +66,12 @@ export async function refresh() {
         method: "POST",
         credentials: "same-origin",
         cache: "no-store",
+      }).catch(() => {
+        throw new ApiError(
+          0,
+          "NETWORK",
+          "Нет связи с сервером. Проверьте подключение и повторите попытку.",
+        );
       });
       if (!response.ok) await failure(response);
       const data: Schema<"TokenResponse"> = await response.json();
@@ -51,7 +88,12 @@ export async function request<T>(
   kind: "json" | "text" | "blob" = "json",
   retry = true,
 ): Promise<T> {
+  const publicEndpoint =
+    path === "/auth/login" ||
+    path === "/auth/refresh" ||
+    path.startsWith("/invitations/");
   const sentToken = token;
+  const sentGeneration = generation;
   let response: Response;
   try {
     response = await fetch(`/api/v1${path}`, {
@@ -60,7 +102,9 @@ export async function request<T>(
       cache: "no-store",
       headers: {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(!publicEndpoint && token
+          ? { Authorization: `Bearer ${token}` }
+          : {}),
         ...options.headers,
       },
     });
@@ -71,16 +115,15 @@ export async function request<T>(
       "Нет связи с сервером. Проверьте подключение и повторите попытку.",
     );
   }
-  if (
-    response.status === 401 &&
-    retry &&
-    (!path.startsWith("/auth/") || path === "/auth/logout") &&
-    !path.startsWith("/invitations/")
-  ) {
+  if (response.status === 401 && retry && !publicEndpoint) {
     try {
       if (token === sentToken) await refresh();
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      if (
+        error instanceof ApiError &&
+        error.status === 401 &&
+        sentGeneration === generation
+      ) {
         setToken(null);
         window.dispatchEvent(new Event("session-expired"));
       }
@@ -91,7 +134,7 @@ export async function request<T>(
   if (!response.ok) {
     if (response.status === 401 && (path === "/auth/me" || !retry))
       window.dispatchEvent(new Event("session-expired"));
-    await failure(response);
+    await failure(response, path);
   }
   if (response.status === 204) return undefined as T;
   return (

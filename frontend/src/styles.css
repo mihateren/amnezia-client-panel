@@ -1794,3 +1794,197 @@ select {
   background: var(--bad-bg);
   color: var(--bad);
 }
+.server-selector {
+  --server-selected-bg: #edf7f5;
+  --server-selected-border: #43877e;
+  --server-selected-ink: #285e56;
+  --server-note-bg: #fcf5e9;
+  --server-note-ink: #815b26;
+  margin: 0 0 28px;
+  padding: 26px 28px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+:root[data-theme="dark"] .server-selector {
+  --server-selected-bg: #283c3e;
+  --server-selected-border: #76b8ae;
+  --server-selected-ink: #b1e4db;
+  --server-note-bg: #353129;
+  --server-note-ink: #e7c48c;
+}
+.server-selector-heading {
+  margin-bottom: 22px;
+}
+.server-selector-heading h2 {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 0 0 6px;
+}
+.server-selector-heading p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.server-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 12px;
+}
+.server-options .server-option {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 13px;
+  min-height: 102px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.server-options .server-option:hover {
+  background: var(--surface-soft);
+  border-color: var(--muted);
+}
+.server-options .server-option[aria-pressed="true"] {
+  background: var(--server-selected-bg);
+  border-color: var(--server-selected-border);
+  box-shadow: inset 0 0 0 1px var(--server-selected-border);
+}
+.server-option-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.server-option-title strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.server-selection-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.server-option[aria-pressed="true"] .server-selection-mark {
+  color: var(--surface);
+  background: var(--server-selected-border);
+  border-color: var(--server-selected-border);
+}
+.server-option-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.server-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--good);
+  flex: 0 0 auto;
+}
+.server-option[data-available="false"] .server-status-dot {
+  background: var(--server-note-ink);
+}
+.server-paused-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--server-note-bg);
+}
+.server-paused-icon {
+  color: var(--server-note-ink);
+  padding-top: 2px;
+  flex: 0 0 auto;
+}
+.server-paused-notice h3 {
+  color: var(--server-note-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.server-paused-notice p {
+  max-width: 72ch;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+}
+.client-picker button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.client-picker span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.client-picker button[aria-pressed="true"] {
+  border-color: var(--selection-border);
+  background: var(--selection-bg);
+}
+.client-picker {
+  border: 0;
+  padding: 0;
+  margin: 16px 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.client-picker legend {
+  margin-bottom: 12px;
+}
+.server-form {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.server-card h2,
+.server-options strong {
+  overflow-wrap: anywhere;
+}
+.server-card .device-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 540px) {
+  .server-options button {
+    width: 100%;
+  }
+  .client-picker {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .server-selector {
+    padding: 20px;
+  }
+  .server-options {
+    grid-template-columns: 1fr;
+  }
+  .server-paused-notice {
+    padding: 14px;
+  }
+}

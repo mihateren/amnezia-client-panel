@@ -12,4 +12,5 @@
     <include file="004-device-tv.sql" relativeToChangelogFile="true"/>
     <include file="005-vpn-migration.sql" relativeToChangelogFile="true"/>
     <include file="006-vpn-server-settings.sql" relativeToChangelogFile="true"/>
+    <include file="007-multiple-vpn-servers.sql" relativeToChangelogFile="true"/>
 </databaseChangeLog>

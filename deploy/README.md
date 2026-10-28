@@ -42,12 +42,21 @@ Create `/opt/amnezia-panel` (0700), unpack the release artifact there, and copy
 metrics token, panel password and Grafana password. Keep the SQLite volume and
 ENCRYPTION_KEY together in backups: existing device keys depend on it.
 
-Configure the VPN container/interface/endpoint and install an SSH key authorized
-on the VPN server. Restrict the authorized key to the application server source IP
-and disable forwarding with the `restrict` authorized_keys option. Pin the VPN host
-key in `secrets/known_hosts`. The secrets directory must be 0700; bind-mounted key
-and known_hosts files must be readable by container UID 10001. The entrypoint copies
-the key to a private 0600 file before using OpenSSH. Never put root passwords in `.env`.
+No VPN credentials or VPN-specific parameters are required in CI, Compose or `.env`.
+After signing in, open **VPN-серверы → Добавить сервер** and enter a public display
+name, IP, SSH port (default 22), username and password. Amnezia must already be
+running in a single `amnezia-awg*` container. The panel detects the interface,
+subnet and VPN port. SSH uses password authentication; the host key is pinned
+on first registration and verified on subsequent connections. Passwords are
+AES-GCM encrypted in SQLite with the application's ENCRYPTION_KEY, never returned
+by the API or written to logs.
+
+Admins can rename servers and disable new configurations without stopping existing
+connections. Users choose a server and client type: Amnezia VPN downloads `.vpn`;
+AmneziaWG downloads `.conf` or displays a QR with the same raw WG configuration.
+On adding a previously used server, existing devices are attached only when both
+their public key and assigned IP match a peer on that server. Unmatched legacy
+devices remain visible and can be recreated after selecting a managed server.
 
 Create `secrets/telegram.env` with placeholders if Telegram is unused. Production
 defaults to `GRAFANA_EXECUTE_ALERTS=false`; rules remain provisioned, but notification

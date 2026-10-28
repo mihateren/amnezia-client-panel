@@ -4,6 +4,54 @@
  */
 
 export interface paths {
+    "/api/v1/vpn-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listVpnServers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listManagedVpnServers"];
+        put?: never;
+        post: operations["createVpnServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-servers/{serverId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateManagedVpnServer"];
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -622,6 +670,9 @@ export interface components {
             devices?: components["schemas"]["Device"][];
         };
         CreateDeviceRequest: {
+            /** Format: uuid */
+            serverId: string;
+            clientType: components["schemas"]["ConnectionClientType"];
             /** @example MacBook Pro */
             name: string;
             icon?: components["schemas"]["DeviceIcon"];
@@ -636,8 +687,40 @@ export interface components {
          */
         DeviceIcon: "DESKTOP" | "LAPTOP" | "PHONE" | "TABLET" | "ROUTER" | "TV";
         /** @enum {string} */
+        ConnectionClientType: "AMNEZIA_VPN" | "AMNEZIA_WG";
+        PublicVpnServer: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            enabled: boolean;
+        };
+        ManagedVpnServer: components["schemas"]["PublicVpnServer"] & {
+            ip: string;
+            sshPort: number;
+            username: string;
+            container: string;
+            vpnPort: number;
+        };
+        CreateVpnServer: {
+            name: string;
+            ip: string;
+            /** @default 22 */
+            sshPort: number;
+            username: string;
+            password: string;
+        };
+        UpdateManagedVpnServer: {
+            name?: string;
+            enabled?: boolean;
+            password?: string;
+        };
+        /** @enum {string} */
         DeviceStatus: "ONLINE" | "OFFLINE" | "UNKNOWN" | "OUTDATED";
         Device: {
+            /** Format: uuid */
+            serverId?: string;
+            serverName?: string;
+            clientType?: components["schemas"]["ConnectionClientType"];
             /** Format: int64 */
             generation: number;
             /** Format: uuid */
@@ -866,6 +949,104 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listVpnServers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description VPN server catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicVpnServer"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listManagedVpnServers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description VPN server catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedVpnServer"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createVpnServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVpnServer"];
+            };
+        };
+        responses: {
+            /** @description VPN server catalog */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedVpnServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateManagedVpnServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateManagedVpnServer"];
+            };
+        };
+        responses: {
+            /** @description VPN server catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedVpnServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -1243,6 +1424,7 @@ export interface operations {
                 page?: components["parameters"]["Page"];
                 /** @description Number of elements per page */
                 size?: components["parameters"]["Size"];
+                serverId?: string;
             };
             header?: never;
             path?: never;

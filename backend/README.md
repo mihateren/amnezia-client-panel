@@ -5,9 +5,9 @@ JWT, Micrometer / Prometheus. React 19 / TypeScript / Vite frontend. One backend
 
 ## Run locally
 
-Install JDK 25 and OpenSSH client. Configure the existing VDS and verify its SSH host
-fingerprint using a trusted channel. The SSH account must be able to run the AWG
-commands and read/write the configured files (or execute Docker in container mode).
+Install JDK 25. Use the Linux Docker image for password-based SSH (OpenSSH and
+sshpass are bundled). Add prepared Amnezia servers through the admin UI; development
+and CI need no VPN credentials. Unit/component tests use a test-only VPN gateway.
 
 PowerShell (secrets are generated in memory, not printed):
 ```powershell
@@ -15,10 +15,6 @@ $env:JWT_SECRET = [Convert]::ToBase64String([Security.Cryptography.RandomNumberG
 $env:ENCRYPTION_KEY = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 $env:BOOTSTRAP_ADMIN_NICKNAME = 'admin'
 $env:BOOTSTRAP_ADMIN_PASSWORD = Read-Host 'Initial administrator password (12+ characters)' -MaskInput
-$env:VDS_HOST = 'your-vds.example.com'
-$env:SSH_PRIVATE_KEY = 'C:/path/to/id_ed25519'
-$env:SSH_KNOWN_HOSTS = 'C:/path/to/known_hosts'
-$env:VPN_ENDPOINT = 'your-vds.example.com:51820'
 $env:PUBLIC_URL = 'https://panel.example.com'
 ./gradlew.bat bootRun --args='--spring.profiles.active=dev'
 ```
@@ -64,7 +60,7 @@ Run Compose from the repository root (parent of backend). Dockerfile and monitor
 
 ```sh
 cp ../.env.example ../.env
-# Fill .env with keys, bootstrap credentials, VDS settings, secret file paths,
+# Fill .env with keys and bootstrap credentials,
 # METRICS_TOKEN (openssl rand -hex 32), and a strong GRAFANA_ADMIN_PASSWORD.
 docker compose config --quiet
 docker compose up --build -d
@@ -72,27 +68,21 @@ docker compose logs -f backend
 ```
 
 The service binds 127.0.0.1:8080, runs as UID 10001, and stores SQLite in the named
-`panel-data` volume. Put an HTTPS reverse proxy in front. SSH private key and verified
-known_hosts are mounted externally. The container copies the SSH key into a mode-0600
-file on tmpfs for OpenSSH. Remote installation needs `sh`, `awg`, `awg-quick`,
-`sha256sum`, `base64`, `mktemp`, `cp`, `mv`, and `cut`.
+`panel-data` volume. Put an HTTPS reverse proxy in front. Passwords are decrypted
+only for each SSH operation into private temporary files on tmpfs; commands and
+logs contain no passwords. The prepared Amnezia container needs `sh`, `awg`,
+`awg-quick`, `sha256sum`, `base64`, `mktemp`, `cp`, `mv`, and `cut`.
 The healthcheck probes application liveness; overall health also checks SQLite and VPN.
 
 ## Configuration
 
-See [.env.example](../.env.example) for all environment variables.
-Required: independent JWT_SECRET and ENCRYPTION_KEY (base64, exactly 32 bytes),
-correct VDS_HOST, VDS_USERNAME, SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS, VPN_ENDPOINT,
-VPN_SUBNET, and PUBLIC_URL. For first startup set bootstrap nickname/password.
-Compose additionally requires SSH_KEY_FILE, SSH_KNOWN_HOSTS_FILE, METRICS_TOKEN,
-and GRAFANA_ADMIN_PASSWORD.
-
-AWG_CONTAINER defaults to amnezia-awg; use an empty string for native installation.
-AWG paths refer to the container filesystem when enabled. The server private-key
-file is never read separately. The full server config is read only to preserve it
-during peer edits and is never persisted or logged by the backend.
-VDS_HOST and HANDSHAKE_THRESHOLD are external configuration; restart the single
-instance after changing them. Changing the host does not migrate peers.
+See [.env.example](../.env.example). Required: independent JWT_SECRET and
+ENCRYPTION_KEY (base64, exactly 32 bytes), PUBLIC_URL, METRICS_TOKEN and
+GRAFANA_ADMIN_PASSWORD. For first startup set bootstrap nickname/password.
+Keep ENCRYPTION_KEY and the SQLite volume together across deployments and backups.
+VPN server IP/login/password belong in the admin UI, not environment or CI secrets.
+The panel automatically discovers one running amnezia-awg* container, its interface,
+subnet and UDP port. It does not install or upgrade Amnezia.
 
 ## API
 
@@ -138,7 +128,7 @@ each authenticated request immediately.
   nonce and device UUID as authenticated data. Client private keys never go to VDS.
 - One fair application ReentrantLock spans fresh config read, IP allocation, apply
   and database commit. IP allocation respects existing external peer CIDR ranges.
-- SSH uses key authentication with strict known_hosts verification. Secrets travel
+- SSH uses password authentication with the first observed host key pinned. Secrets travel
   in encrypted SSH stdin, never process arguments. Config replacement checks the
   original SHA-256, writes on the same filesystem, and applies via awg syncconf
   using awg-quick strip. A failed apply restores the old file and runtime config.
@@ -308,42 +298,24 @@ Configure reverse proxy access logs to redact /api/v1/config/* and
 /api/v1/invitations/* paths and disable request/response body logging: those paths
 carry bearer secrets. Runtime threshold/container/path changes require a restart; server IP and SSH credentials can be changed through the admin UI.
 
-## VPN maintenance and server settings
+## Multiple VPN servers
 
-On /vpn choose **Начать работы**. Maintenance and the original server IP are persisted
-in SQLite and survive backend restarts. Creation, deletion (including outdated records),
-and configuration delivery are blocked during maintenance. The VPN daemon itself is not stopped.
+On `/vpn`, use **Добавить сервер** with a display name, IP, port, login and password.
+The name is visible in the user selector and device cards. Edit a server to change
+its name or password. A blank password preserves the current one. Disabling a server
+only rejects new configurations; existing devices can still export configurations
+and be deleted. All changes are audited without credential contents.
 
-Fill in the **Подключение к серверу** form: IP, SSH username/port, private key, public SSH
-host key (type and base64, without comment), and VPN UDP port. Obtain the host key through
-a trusted provider console; strict host-key checking remains enabled. Save with **Сохранить сервер**.
-A different IP requires explicit private and public host keys. On the same IP a blank private
-key preserves the existing credential. Unencrypted SSH private keys are supported; interactive
-passphrase entry is not supported. The private key is encrypted with ENCRYPTION_KEY in SQLite,
-never returned by the API, and materialized only in temporary restricted files for each SSH call.
-Keep ENCRYPTION_KEY and the SQLite volume across redeployments.
+Devices retain their server and chosen application for their whole lifetime.
+Amnezia VPN exports `.vpn` (compressed native guest profile); AmneziaWG exports
+`.conf` and PNG QR containing raw WG text. VPN devices reject QR requests.
+IPv4 allocation and remote changes are isolated per server, including overlapping
+subnets. User revocation updates every affected server before committing database
+changes, with compensation if another server or the database fails.
 
-Settings apply immediately without a backend restart and remain after a restart. Until settings
-are saved in the UI, the existing environment and mounted SSH files are used. Container,
-interface, file paths, subnet and other AmneziaWG options still come from environment configuration;
-the prepared server must match them. This form does not install or reconfigure AmneziaWG.
-
-Choose **Закончить работы**. The backend checks config readability/parsing, public key/PSK
-and AWG runtime access. This checks SSH/AWG, not end-to-end client connectivity. A failure leaves
-maintenance enabled so credentials can be corrected. Generation advances atomically only when
-the final IP differs from the IP recorded at the start of this maintenance window (normalized
-IPv4/IPv6 comparison). Changing settings and returning to the original IP does not advance it.
-Starting/finishing works on the same IP preserves devices and configs. Changing SSH credentials
-alone does not advance generation; existing VPN keys/protocol settings and port must remain
-compatible with issued client configs.
-
-When the IP changes, previous-generation devices become OUTDATED. The user's banner stays until
-all their outdated records are deleted. They do not consume the active five-device limit and
-cannot issue configs/import links. After maintenance their deletion is a local audited operation;
-it does not revoke access on the old VPS or remove profiles from AmneziaVPN. Retire the old VPS
-separately. Settings edits and maintenance transitions are audited without credential contents.
-The panel must remain reachable independently of VPN.
-
-User device list/detail reads and metadata updates use SQLite only, without SSH runtime calls.
-Their status is UNKNOWN or OUTDATED; handshake/traffic values are not live telemetry.
-The independent VPN monitor and administrative monitoring retain their existing behavior.
+The migration preserves legacy devices. Registering their existing VPN server
+attaches devices only when the peer public key and IP both match. Unmatched legacy
+records remain visible under the old migration APIs; new creation always requires
+a server and application choice. New managed devices are independent of legacy
+maintenance/generation. User device reads and metadata updates remain local and do
+not request live SSH telemetry.

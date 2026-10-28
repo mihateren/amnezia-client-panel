@@ -6,7 +6,9 @@ import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.Result.SUCCESS;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -38,6 +40,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class AdminService {
+  private final ServerCatalog catalog;
   private final VpnMigrationService migration;
   private final UserRepository users;
   private final DeviceRepository devices;
@@ -54,6 +57,7 @@ public class AdminService {
   private final Clock clock;
 
   public AdminService(
+      ServerCatalog catalog,
       VpnMigrationService migration,
       UserRepository users,
       DeviceRepository devices,
@@ -68,6 +72,7 @@ public class AdminService {
       ReentrantLock lock,
       @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       Clock clock) {
+    this.catalog = catalog;
     this.migration = migration;
     this.users = users;
     this.devices = devices;
@@ -173,12 +178,20 @@ public class AdminService {
     var current = owned.stream().filter(d -> !migration.outdated(d)).toList();
     if (current.isEmpty()) tx.executeWithoutResult(s -> persist.run());
     else {
-      migration.requireAvailable();
-      var original = vpn.readConfig();
-      var replacement =
-          AwgConfig.parse(original)
-              .remove(current.stream().map(Device::publicKey).collect(Collectors.toSet()));
-      mutation.apply(original, replacement, persist);
+      var groups = new HashMap<UUID, List<Device>>();
+      current.forEach(d -> groups.computeIfAbsent(d.serverId(), key -> new ArrayList<>()).add(d));
+      var changes = new ArrayList<VpnMutation.Change>();
+      groups.forEach(
+          (serverId, group) -> {
+            if (serverId == null) migration.requireAvailable();
+            var gateway = catalog.gateway(serverId);
+            var original = gateway.readConfig();
+            var replacement =
+                AwgConfig.parse(original)
+                    .remove(group.stream().map(Device::publicKey).collect(Collectors.toSet()));
+            changes.add(new VpnMutation.Change(gateway, original, replacement));
+          });
+      mutation.apply(changes, persist);
     }
   }
 

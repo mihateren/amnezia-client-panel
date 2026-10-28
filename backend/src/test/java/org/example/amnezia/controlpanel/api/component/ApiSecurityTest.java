@@ -46,7 +46,9 @@ class ApiSecurityTest extends BaseComponentTest {
                   .SQLITE_NAMED_JDBC_TEMPLATE_BEAN)
           NamedParameterJdbcTemplate jdbc,
       PasswordEncoder passwords,
-      JsonMapper json) {
+      JsonMapper json,
+      org.example.amnezia.controlpanel.api.service.ServerCatalog catalog) {
+    this.catalog = catalog;
     this.port = port;
     this.users = users;
     this.devices = devices;
@@ -77,7 +79,8 @@ class ApiSecurityTest extends BaseComponentTest {
 
   @Test
   void shouldDeliverGeneratedDeviceContractInEveryContentType() throws Exception {
-    var created = request("POST", "/api/v1/devices", token, "{\"name\":\"api-laptop\"}", null);
+    var created =
+        request("POST", "/api/v1/devices", token, createBody("api-laptop", "LAPTOP"), null);
     assertThat(created.statusCode()).isEqualTo(201);
     assertThat(json.readTree(created.body()).get("icon").asString()).isEqualTo("LAPTOP");
     var id = json.readTree(created.body()).get("id").asString();
@@ -114,8 +117,7 @@ class ApiSecurityTest extends BaseComponentTest {
 
   @Test
   void shouldPersistDeviceNameAndIconWithoutChangingVpnKeysOrConfiguration() throws Exception {
-    var created =
-        request("POST", "/api/v1/devices", token, "{\"name\":\"Phone\",\"icon\":\"PHONE\"}", null);
+    var created = request("POST", "/api/v1/devices", token, createBody("Phone", "PHONE"), null);
     assertThat(created.statusCode()).isEqualTo(201);
     var id = UUID.fromString(json.readTree(created.body()).get("id").asString());
     var before = devices.find(id).orElseThrow();
@@ -281,6 +283,9 @@ class ApiSecurityTest extends BaseComponentTest {
         .isEqualTo(401);
   }
 
+  private final org.example.amnezia.controlpanel.api.service.ServerCatalog catalog;
+  private UUID serverId;
+
   @BeforeEach
   void setup() {
     vpn.reset();
@@ -292,6 +297,38 @@ class ApiSecurityTest extends BaseComponentTest {
     nickname = users.find(user).orElseThrow().nickname();
     token = jwt.issue(user);
     adminToken = jwt.issue(admin);
+    serverId =
+        catalog
+            .create(
+                admin,
+                new org.example.amnezia.controlpanel.api.dto.ManagedServerDtos.Create(
+                    "API fixture",
+                    "2001:db8:" + Integer.toHexString(UUID.randomUUID().hashCode() & 65535) + "::1",
+                    22,
+                    "root",
+                    "fixture-password"))
+            .id();
+    vpn.servers.put(serverId, vpn);
+  }
+
+  private String createBody(String name, String icon) {
+    return json.writeValueAsString(
+        java.util.Map.of(
+            "name", name, "icon", icon, "serverId", serverId, "clientType", "AMNEZIA_WG"));
+  }
+
+  @Test
+  void shouldLoginAgainWithStaleBearerAndAfterLogout() throws Exception {
+    var body = json.writeValueAsString(new AuthDtos.Credentials(nickname, "strong-test-password"));
+    var login = request("POST", "/api/v1/auth/login", "expired-or-invalid", body, null);
+    assertThat(login.statusCode()).isEqualTo(200);
+    var access = json.readTree(login.body()).get("accessToken").asString();
+    var cookie = login.headers().firstValue("set-cookie").orElseThrow().split(";")[0];
+    assertThat(request("POST", "/api/v1/auth/logout", access, null, cookie).statusCode())
+        .isEqualTo(204);
+    assertThat(
+            request("POST", "/api/v1/auth/login", "expired-or-invalid", body, cookie).statusCode())
+        .isEqualTo(200);
   }
 
   private UUID insert(User.Role role) {
@@ -579,8 +616,7 @@ class ApiSecurityTest extends BaseComponentTest {
 
   @Test
   void shouldPersistTvIconOnCreateAndUpdate() throws Exception {
-    var response =
-        request("POST", "/api/v1/devices", token, "{\"name\":\"TV\",\"icon\":\"TV\"}", null);
+    var response = request("POST", "/api/v1/devices", token, createBody("TV", "TV"), null);
     assertThat(response.statusCode()).isEqualTo(201);
     var id = json.readTree(response.body()).get("id").asString();
     assertThat(json.readTree(response.body()).get("icon").asString()).isEqualTo("TV");

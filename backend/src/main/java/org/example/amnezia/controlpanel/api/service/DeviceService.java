@@ -7,6 +7,7 @@ import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.
 import static org.example.amnezia.controlpanel.api.persistence.model.AuditEvent.Result.SUCCESS;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class DeviceService {
+  private final ServerCatalog catalog;
   private final VpnMigrationService migration;
   private final DeviceRepository devices;
   private final AuthService auth;
@@ -46,6 +48,7 @@ public class DeviceService {
   private final TransactionTemplate tx;
 
   public DeviceService(
+      ServerCatalog catalog,
       VpnMigrationService migration,
       DeviceRepository devices,
       AuthService auth,
@@ -57,6 +60,7 @@ public class DeviceService {
       ReentrantLock lock,
       AuditService audit,
       @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx) {
+    this.catalog = catalog;
     this.migration = migration;
     this.devices = devices;
     this.auth = auth;
@@ -83,18 +87,29 @@ public class DeviceService {
   }
 
   public DeviceResponse create(UUID actor, String name, Device.Icon icon) {
+    return create(actor, name, icon, null, Device.ClientType.AMNEZIA_WG);
+  }
+
+  public DeviceResponse create(UUID actor, ApiCommands.CreateDevice command) {
+    return create(actor, command.name(), command.icon(), command.serverId(), command.clientType());
+  }
+
+  private DeviceResponse create(
+      UUID actor, String name, Device.Icon icon, UUID serverId, Device.ClientType clientType) {
     lock.lock();
     try {
       auth.active(actor);
-      long generation = migration.requireAvailable();
-      if (devices.byUser(actor).stream().filter(d -> d.generation() == generation).count() >= 5)
+      var server = serverId == null ? null : catalog.forCreation(serverId);
+      var gateway = catalog.gateway(serverId);
+      long generation = server == null ? migration.requireAvailable() : 1;
+      if (devices.byUser(actor).stream().filter(d -> !migration.outdated(d)).count() >= 5)
         throw ApiException.conflict("DEVICE_LIMIT", "Device limit reached");
-      var original = vpn.readConfig();
+      var original = gateway.readConfig();
       var parsed = AwgConfig.parse(original);
-      var ip = parsed.allocate(config.vpn().subnet());
+      var ip = parsed.allocate(server == null ? config.vpn().subnet() : server.subnet());
       var keys = ClientKeys.generate();
-      vpn.serverPublicKey();
-      var replacement = parsed.add(keys.publicKey(), vpn.presharedKey(), ip);
+      gateway.serverPublicKey();
+      var replacement = parsed.add(keys.publicKey(), gateway.presharedKey(), ip);
       var id = UUID.randomUUID();
       var device =
           new Device(
@@ -106,10 +121,11 @@ public class DeviceService {
               keys.publicKey(),
               secrets.encrypt(keys.privateKey(), id),
               clock.instant(),
-              generation);
+              generation,
+              serverId,
+              clientType);
       mutation.apply(
-          original,
-          replacement,
+          List.of(new VpnMutation.Change(gateway, original, replacement)),
           () -> {
             devices.insert(device);
             audit.record(DEVICE_CREATED, SUCCESS, actor, "DEVICE", id);
@@ -127,7 +143,7 @@ public class DeviceService {
     lock.lock();
     try {
       var device = owned(actor, deviceId);
-      migration.requireAvailable();
+      if (device.serverId() == null) migration.requireAvailable();
       if (migration.outdated(device)) {
         tx.executeWithoutResult(
             s -> {
@@ -136,12 +152,11 @@ public class DeviceService {
             });
         return;
       }
-      migration.requireAvailable();
-      var original = vpn.readConfig();
+      var gateway = catalog.gateway(device.serverId());
+      var original = gateway.readConfig();
       var replacement = AwgConfig.parse(original).remove(Set.of(device.publicKey()));
       mutation.apply(
-          original,
-          replacement,
+          List.of(new VpnMutation.Change(gateway, original, replacement)),
           () -> {
             devices.delete(deviceId);
             audit.record(DEVICE_DELETED, SUCCESS, actor, "DEVICE", deviceId);
@@ -174,7 +189,9 @@ public class DeviceService {
                     device.publicKey(),
                     device.privateKeyEncrypted(),
                     device.createdAt(),
-                    device.generation());
+                    device.generation(),
+                    device.serverId(),
+                    device.clientType());
               });
       return response(updated, null);
     } finally {
@@ -188,11 +205,18 @@ public class DeviceService {
   }
 
   public PageResponse<DeviceResponse> list(UUID actor, int page, int size) {
+    return list(actor, page, size, null);
+  }
+
+  public PageResponse<DeviceResponse> list(UUID actor, int page, int size, UUID serverId) {
     PageResponse.validate(page, size);
     auth.active(actor);
     long generation = migration.state().generation();
     return PageResponse.slice(
-        devices.byUser(actor).stream().map(d -> response(d, null, generation)).toList(),
+        devices.byUser(actor).stream()
+            .filter(d -> serverId == null || serverId.equals(d.serverId()))
+            .map(d -> response(d, null, generation))
+            .toList(),
         page,
         size);
   }
@@ -212,7 +236,7 @@ public class DeviceService {
 
   private DeviceResponse response(
       Device device, Map<String, PeerRuntime> runtime, long generation) {
-    boolean outdated = device.generation() != generation;
+    boolean outdated = device.serverId() == null && device.generation() != generation;
     var peer = outdated || runtime == null ? null : runtime.get(device.publicKey());
     var status =
         outdated
@@ -233,6 +257,9 @@ public class DeviceService {
         peer == null ? 0 : peer.rxBytes(),
         peer == null ? 0 : peer.txBytes(),
         device.createdAt(),
-        device.generation());
+        device.generation(),
+        device.serverId(),
+        device.serverId() == null ? null : catalog.require(device.serverId()).name(),
+        device.clientType());
   }
 }

@@ -15,7 +15,39 @@ public record DeviceResponse(
     long rxBytes,
     long txBytes,
     Instant createdAt,
-    long generation) {
+    long generation,
+    UUID serverId,
+    String serverName,
+    Device.ClientType clientType) {
+  public DeviceResponse(
+      UUID id,
+      String name,
+      Device.Icon icon,
+      String vpnIp,
+      String publicKey,
+      Status status,
+      Instant lastHandshakeAt,
+      long rxBytes,
+      long txBytes,
+      Instant createdAt,
+      long generation) {
+    this(
+        id,
+        name,
+        icon,
+        vpnIp,
+        publicKey,
+        status,
+        lastHandshakeAt,
+        rxBytes,
+        txBytes,
+        createdAt,
+        generation,
+        null,
+        null,
+        Device.ClientType.AMNEZIA_WG);
+  }
+
   public DeviceResponse(
       UUID id,
       String name,

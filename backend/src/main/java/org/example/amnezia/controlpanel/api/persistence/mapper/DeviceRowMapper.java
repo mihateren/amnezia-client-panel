@@ -19,6 +19,8 @@ public class DeviceRowMapper implements RowMapper<Device> {
         rs.getString("client_public_key"),
         rs.getString("client_private_key_enc"),
         RowValues.instant(rs.getString("created_at")),
-        rs.getLong("generation"));
+        rs.getLong("generation"),
+        rs.getString("server_id") == null ? null : RowValues.uuid(rs.getString("server_id")),
+        Device.ClientType.valueOf(rs.getString("client_type")));
   }
 }

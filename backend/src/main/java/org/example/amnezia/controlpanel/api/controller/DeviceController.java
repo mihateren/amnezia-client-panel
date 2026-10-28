@@ -27,8 +27,7 @@ public class DeviceController implements DevicesApi {
   @Override
   public ResponseEntity<Device> createDevice(CreateDeviceRequest request) {
     var command = context.validated(mapper.command(request));
-    return ResponseEntity.status(201)
-        .body(mapper.device(service.create(context.actor(), command.name(), command.icon())));
+    return ResponseEntity.status(201).body(mapper.device(service.create(context.actor(), command)));
   }
 
   @Override
@@ -38,8 +37,8 @@ public class DeviceController implements DevicesApi {
   }
 
   @Override
-  public ResponseEntity<DevicePage> getMyDevices(Integer page, Integer size) {
-    return ResponseEntity.ok(mapper.page(service.list(context.actor(), page, size)));
+  public ResponseEntity<DevicePage> getMyDevices(Integer page, Integer size, UUID serverId) {
+    return ResponseEntity.ok(mapper.page(service.list(context.actor(), page, size, serverId)));
   }
 
   @Override

@@ -13,7 +13,7 @@ test("real API and VPS: invitation, refresh, configuration, revocation and clean
     process.env.RUN_VPS_TESTS !== "1",
     "Explicit opt-in required: this creates and removes a temporary VPN peer.",
   );
-  test.setTimeout(120000);
+  test.setTimeout(240000);
   const settings = Object.fromEntries(
     readFileSync(process.env.PANEL_TEST_ENV_FILE || "../.env", "utf8")
       .split(/\r?\n/)
@@ -72,6 +72,7 @@ test("real API and VPS: invitation, refresh, configuration, revocation and clean
       userPage.getByRole("heading", { name: "Мои устройства" }),
     ).toBeVisible();
     await userPage.getByRole("button", { name: "Добавить устройство" }).click();
+    await userPage.getByRole("button", { name: "Amnezia VPN Файл .vpn" }).click();
     await userPage.getByLabel("Название").fill("Integration temporary device");
     await userPage
       .getByRole("button", { name: "Создать устройство", exact: true })
@@ -84,10 +85,10 @@ test("real API and VPS: invitation, refresh, configuration, revocation and clean
     ).toBeVisible({ timeout: 30000 });
     const nativeDownload = userPage.waitForEvent("download");
     await userPage
-      .getByRole("button", { name: "Скачать .conf файл", exact: true })
+      .getByRole("button", { name: "Скачать .vpn файл", exact: true })
       .click();
     const nativeFile = await nativeDownload;
-    expect(nativeFile.suggestedFilename().endsWith(".conf")).toBe(true);
+    expect(nativeFile.suggestedFilename().endsWith(".vpn")).toBe(true);
     const packed = Buffer.from(
       readFileSync((await nativeFile.path())!, "utf8").slice(6),
       "base64url",
@@ -106,37 +107,34 @@ test("real API and VPS: invitation, refresh, configuration, revocation and clean
         "DisableCookies",
       ].every((key) => Boolean(client[key])),
     ).toBe(true);
-    await userPage
-      .getByRole("button", { name: "Сканировать QR-код", exact: true })
-      .click();
-    await expect(
-      userPage.getByRole("img", { name: /QR-код AmneziaVPN/ }).first(),
-    ).toBeVisible();
-    const qrImages = userPage.getByRole("img", { name: /QR-код AmneziaVPN/ });
-    const pieces: Buffer[] = [];
-    for (let index = 0; index < (await qrImages.count()); index++) {
-      // Decode the displayed image at its real browser size; never save secret QR screenshots.
-      const png = PNG.sync.read(await qrImages.nth(index).screenshot());
-      const code = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
-      expect(Boolean(code)).toBe(true);
-      const frame = Buffer.from(code!.data, "base64url");
-      expect(frame.readInt16BE(0)).toBe(1984);
-      expect(frame[3]).toBe(index);
-      pieces.push(frame.subarray(8));
-    }
-    expect(Buffer.concat(pieces).equals(packed)).toBe(true);
-    await userPage
-      .context()
-      .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await userPage
-      .getByRole("button", { name: "Скопировать ключ доступа", exact: true })
-      .click();
-    await expect(userPage.getByRole("status")).toContainText("Ключ скопирован");
-    expect(
-      await userPage.evaluate(async () =>
-        (await navigator.clipboard.readText()).startsWith("vpn://"),
-      ),
-    ).toBe(true);
+    await expect(userPage.getByRole("button", { name: "Сканировать QR-код" })).toHaveCount(0);
+    await userPage.getByRole("button", { name: "Закрыть", exact: true }).click();
+    await userPage.getByRole("button", { name: "Добавить устройство" }).click();
+    await userPage.getByRole("button", { name: "AmneziaWG Файл .conf и QR-код" }).click();
+    await userPage.getByLabel("Название").fill("Integration temporary WG");
+    await userPage.getByRole("button", { name: "Создать устройство", exact: true }).click();
+    await expect(userPage.getByRole("button", { name: "Скачать .conf файл" })).toBeVisible({timeout:30000});
+    const wgDownload=userPage.waitForEvent("download");
+    await userPage.getByRole("button", { name: "Скачать .conf файл" }).click();
+    const wgFile=await wgDownload;
+    expect(wgFile.suggestedFilename().endsWith(".conf")).toBe(true);
+    const raw=readFileSync((await wgFile.path())!,"utf8");
+    expect(raw.startsWith("[Interface]")).toBe(true);
+    await userPage.getByRole("button", { name: "Сканировать QR-код", exact: true }).click();
+    const qrImage=userPage.getByRole("img", { name: "QR-код AmneziaWG" });
+    await expect(qrImage).toBeVisible({timeout:30000});
+    // Decode in memory, never persist a real credential QR screenshot.
+    const png=PNG.sync.read(await qrImage.screenshot());
+    const code=jsQR(new Uint8ClampedArray(png.data),png.width,png.height);
+    expect(Boolean(code)).toBe(true);
+    expect(code!.data === raw).toBe(true);
+    await userPage.getByRole("button", { name: "Закрыть", exact: true }).click();
+    await userPage.getByRole("link", { name: "Открыть профиль" }).click();
+    await userPage.getByRole("button", { name: "Выйти", exact: true }).click();
+    await userPage.getByLabel("Никнейм", { exact: true }).fill(nickname);
+    await userPage.getByLabel("Пароль", { exact: true }).fill(password);
+    await userPage.getByRole("button", { name: "Войти в панель" }).click();
+    await expect(userPage.getByRole("heading", { name: "Мои устройства" })).toBeVisible();
     const disable = await request.patch(
       `${origin}/api/v1/admin/users/${userId}`,
       { headers, data: { status: "DISABLED" } },

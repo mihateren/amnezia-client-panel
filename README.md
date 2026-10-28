@@ -20,7 +20,7 @@ amnezia-client-panel/
 │   ├── build.gradle.kts
 │   └── settings.gradle.kts
 ├── frontend/                Independent React application and Docker image
-├── secrets/                 Ignored SSH keys and known_hosts
+├── secrets/                 Ignored deployment secrets
 ├── docker-compose.yml       Shared application stack
 ├── .env.example             Shared environment template
 └── .env                     Ignored local settings and generated credentials
@@ -86,16 +86,13 @@ user and admin device management, configuration text/JSON/file/QR/single-use lin
 user search/status/delete, VPN health, dashboard and filtered/paginated audit.
 Existing external VPN peers are counted by the server but are not imported as accounts.
 
-For AmneziaVPN, use **Скачать .conf файл**, **Сканировать QR-код**, or
-**Скопировать ключ доступа** in device details. The downloaded .conf contains a
-native vpn:// guest profile, preserving all AWG 3.1 fields. QR uses Amnezia's framed
-QR series format; scan every displayed part in the app's scanner without closing it.
-The client must support the server's AWG version. Each action includes explicit
-import instructions in the interface.
-
-If the official client uses an I1 signature absent from the server's awg0.conf,
-set VPN_CLIENT_SIGNATURE to that signature in the ignored .env. It is included in
-every client export; an I1 already present in the server configuration takes priority.
+Users select a named VPN server above their devices and choose an application before
+creating a connection. **Amnezia VPN** exports only a `.vpn` guest profile;
+**AmneziaWG** exports a raw `.conf` file or a QR encoding the same configuration.
+Admin **VPN-серверы** supports adding prepared Amnezia servers with IP, login and
+password, renaming them (for example, «Рекомендуемый»), and disabling new
+configurations without interrupting existing connections. Passwords are encrypted
+in SQLite and never returned by the API. No VPN credentials are required in CI.
 
 ## Verification
 

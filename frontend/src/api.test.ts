@@ -5,6 +5,51 @@ afterEach(() => {
   setToken(null);
 });
 describe("API client", () => {
+  it("does not send a stale bearer token on password login", async () => {
+    setToken("expired");
+    const fetch = vi.fn(async (_url: string, options: RequestInit) => {
+      expect(
+        (options.headers as Record<string, string>).Authorization,
+      ).toBeUndefined();
+      return Response.json({ accessToken: "new" });
+    });
+    vi.stubGlobal("fetch", fetch);
+    await request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ nickname: "alex", password: "example" }),
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("refreshes expired authentication for profile changes", async () => {
+    setToken("expired");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, options: RequestInit) => {
+        if (url.endsWith("/refresh"))
+          return Response.json({ accessToken: "fresh" });
+        return (options.headers as Record<string, string>).Authorization ===
+          "Bearer fresh"
+          ? Response.json({ nickname: "renamed" })
+          : new Response("", { status: 401 });
+      }),
+    );
+    await expect(
+      request("/auth/me/nickname", { method: "PATCH", body: "{}" }),
+    ).resolves.toEqual({ nickname: "renamed" });
+  });
+  it("shows a useful password error without retrying login", async () => {
+    const fetch = vi.fn(async () =>
+      Response.json(
+        { code: "UNAUTHORIZED", message: "Authentication required" },
+        { status: 401 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      request("/auth/login", { method: "POST", body: "{}" }),
+    ).rejects.toThrow("Проверьте пароль");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it("deduplicates refresh during concurrent expired requests", async () => {
     let refreshes = 0;
     setToken("expired");

@@ -25,7 +25,8 @@ import {
   Moon,
 } from "lucide-react";
 import { AccountPage, AuthPage, AuthProvider, useAuth } from "./auth";
-import { Audit, Dashboard, Users, Vpn } from "./admin";
+import { Audit, Dashboard, Users } from "./admin";
+import { Servers } from "./servers";
 import { Devices } from "./devices";
 import { Guide } from "./guide";
 import { Brand } from "./brand";
@@ -62,7 +63,7 @@ function Layout() {
         [LayoutDashboard, "Обзор сети", "/"],
         [UsersIcon, "Пользователи", "/users"],
         [Monitor, "Все устройства", "/devices"],
-        [Activity, "VPN-сервер", "/vpn"],
+        [Activity, "VPN-серверы", "/vpn"],
         [ScrollText, "Журнал событий", "/audit"],
       ] as const)
     : [];
@@ -193,7 +194,7 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<AdminOnly />}>
               <Route path="users" element={<Users />} />
               <Route path="devices" element={<Devices admin />} />
-              <Route path="vpn" element={<Vpn />} />
+              <Route path="vpn" element={<Servers />} />
               <Route path="audit" element={<Audit />} />
             </Route>
             <Route

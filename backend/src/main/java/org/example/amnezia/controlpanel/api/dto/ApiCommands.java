@@ -3,6 +3,7 @@ package org.example.amnezia.controlpanel.api.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import org.example.amnezia.controlpanel.api.persistence.model.Device;
 
 public final class ApiCommands {
@@ -12,7 +13,11 @@ public final class ApiCommands {
 
   public record CreateInvitation(@NotBlank @Size(max = 100) String internalName) {}
 
-  public record CreateDevice(@NotBlank @Size(max = 100) String name, Device.Icon icon) {
+  public record CreateDevice(
+      @NotBlank @Size(max = 100) String name,
+      Device.Icon icon,
+      @NotNull UUID serverId,
+      @NotNull Device.ClientType clientType) {
     public CreateDevice {
       icon = icon == null ? Device.Icon.LAPTOP : icon;
     }

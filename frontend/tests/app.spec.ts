@@ -5,7 +5,19 @@ const user = {
   role: "ADMIN",
   status: "ACTIVE",
 };
+const server = {
+  id: "33333333-3333-4333-8333-333333333333",
+  name: "Рекомендуемый",
+  enabled: true,
+  ip: "203.0.113.1",
+  sshPort: 22,
+  username: "root",
+};
 const device = {
+  serverId: server.id,
+  serverName: server.name,
+  clientType: "AMNEZIA_WG",
+  generation: 1,
   id: "22222222-2222-4222-8222-222222222222",
   name: "MacBook Pro",
   icon: "LAPTOP",
@@ -26,6 +38,7 @@ const paged = (content: unknown[]) => ({
 });
 async function mock(page: import("@playwright/test").Page, role = "ADMIN") {
   let devices = [device];
+  let servers = [server];
   let authenticated = false;
   let currentUser = { ...user, role };
   let currentPassword = "test-password";
@@ -58,7 +71,27 @@ async function mock(page: import("@playwright/test").Page, role = "ADMIN") {
       }
       currentPassword = req.postDataJSON().newPassword;
       data = { accessToken: "rotated", user: currentUser };
-    } else if (path === "/auth/me") data = currentUser;
+    } else if (path === "/admin/vpn-servers" && req.method() === "POST") {
+      const { password: _password, ...input } = req.postDataJSON();
+      const added = {
+        ...server,
+        ...input,
+        id: "44444444-4444-4444-8444-444444444444",
+      };
+      servers = [...servers, added];
+      data = added;
+    } else if (
+      path.startsWith("/admin/vpn-servers/") &&
+      req.method() === "PATCH"
+    ) {
+      const id = path.split("/").at(-1);
+      servers = servers.map((s) =>
+        s.id === id ? { ...s, ...req.postDataJSON() } : s,
+      );
+      data = servers.find((s) => s.id === id);
+    } else if (path === "/vpn-servers" || path === "/admin/vpn-servers")
+      data = servers;
+    else if (path === "/auth/me") data = currentUser;
     else if (path === "/auth/logout") {
       authenticated = false;
       return route.fulfill({ status: 204 });
@@ -111,6 +144,8 @@ async function mock(page: import("@playwright/test").Page, role = "ADMIN") {
           id: "new",
           name: req.postDataJSON().name,
           icon: req.postDataJSON().icon,
+          serverId: req.postDataJSON().serverId,
+          clientType: req.postDataJSON().clientType,
         },
       ];
       data = devices.at(-1);
@@ -121,6 +156,22 @@ async function mock(page: import("@playwright/test").Page, role = "ADMIN") {
         url: "https://panel.example/api/v1/config/secret",
         expiresAt: "2026-10-05T13:00:00Z",
       };
+    else if (path.endsWith("/config/qr"))
+      return route.fulfill({
+        contentType: "image/png",
+        body: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ1kAAAAASUVORK5CYII=",
+          "base64",
+        ),
+      });
+    else if (path.endsWith("/config/file"))
+      return route.fulfill({
+        contentType: "application/octet-stream",
+        body:
+          devices.find((d) => path.includes(d.id))?.clientType === "AMNEZIA_VPN"
+            ? "vpn://test-file"
+            : "[Interface]\nAddress = 10.8.1.2/32",
+      });
     else if (path.endsWith("/config"))
       return route.fulfill({
         contentType: "text/plain",
@@ -227,6 +278,9 @@ test("user device lifecycle and access control", async ({ page }) => {
     page.getByRole("link", { name: "Пользователи", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Добавить устройство" }).click();
+  await page
+    .getByRole("button", { name: "AmneziaWG Файл .conf и QR-код" })
+    .click();
   await page.getByLabel("Название").fill("Телефон");
   await page
     .getByRole("button", { name: "Создать устройство", exact: true })
@@ -241,18 +295,11 @@ test("user device lifecycle and access control", async ({ page }) => {
     .getByRole("button", { name: "Сканировать QR-код", exact: true })
     .click();
   await expect(
-    page.getByRole("img", { name: /QR-код AmneziaVPN/ }).first(),
+    page.getByRole("img", { name: /QR-код AmneziaWG/ }).first(),
   ).toBeVisible();
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page
-    .getByRole("button", { name: "Скопировать ключ доступа", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toContainText("Ключ скопирован");
-  expect(
-    await page.evaluate(async () =>
-      (await navigator.clipboard.readText()).startsWith("vpn://"),
-    ),
-  ).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Скопировать ключ доступа" }),
+  ).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Скачать JSON" })).toHaveCount(
     0,
   );
@@ -401,20 +448,16 @@ test("guide shows supplied screenshots and official Google Play link", async ({
   await expect(
     page.getByRole("link", { name: "«Мои устройства»" }),
   ).toHaveAttribute("href", "/my-devices");
-  for (const [name, file] of [
-    ["Файл", "file"],
-    ["QR-код", "qr"],
-    ["Ключ доступа", "key"],
-  ]) {
-    await page.getByRole("button", { name, exact: true }).click();
-    const image = page.locator(".guide-shot img");
-    await image.scrollIntoViewIfNeeded();
-    await expect(image).toHaveAttribute("src", `/guide/${file}.png`);
-    await expect
-      .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
-      .toBeGreaterThan(0);
-  }
-  await page.getByRole("button", { name: "Файл", exact: true }).click();
+  const image = page.locator(".guide-shot img");
+  await expect(image).toHaveAttribute("src", "/guide/file.png");
+  await page.getByRole("button", { name: "AmneziaWG", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Или подключитесь через QR-код" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Ключ доступа", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Amnezia VPN", exact: true }).click();
   await page.screenshot({
     animations: "disabled",
     path: "test-results/guide.png",
@@ -433,7 +476,7 @@ test("mobile connection close button remains visible while scrolling", async ({
     .getByRole("button", { name: "Сканировать QR-код", exact: true })
     .click();
   await expect(
-    page.getByRole("img", { name: /QR-код AmneziaVPN/ }),
+    page.getByRole("img", { name: /QR-код AmneziaWG/ }),
   ).toBeVisible();
   await page.getByRole("dialog").evaluate((el) => {
     el.scrollTop = el.scrollHeight;
@@ -726,12 +769,6 @@ test("dashboard shows counts and events while VPN is delayed", async ({
 });
 
 for (const [path, endpoint, label, result] of [
-  [
-    "/vpn",
-    "/admin/vpn",
-    "Загрузка VPN-сервера",
-    { serverUp: true, peersTotal: 2, peersActive: 1 },
-  ],
   ["/my-devices", "/devices", "Загрузка устройств", paged([device])],
   ["/devices", "/admin/devices", "Загрузка устройств", paged([device])],
 ] as const) {
@@ -778,7 +815,7 @@ for (const [path, endpoint, label, result] of [
   });
 }
 
-test("device page loads once when migration status arrives", async ({
+test("device page selects a server and does not reload when legacy migration status arrives", async ({
   page,
 }) => {
   await mock(page, "USER");
@@ -804,13 +841,13 @@ test("device page loads once when migration status arrives", async ({
   await expect(
     page.getByRole("button", { name: "MacBook Pro", exact: true }),
   ).toBeVisible();
-  expect(deviceRequests).toBe(1);
+  expect(deviceRequests).toBe(2);
   release();
   await expect(
     page.getByRole("button", { name: "Добавить устройство" }),
   ).toBeEnabled();
   await page.waitForLoadState("networkidle");
-  expect(deviceRequests).toBe(1);
+  expect(deviceRequests).toBe(2);
 });
 
 test("admin device details show directional traffic and handle unavailable stats", async ({
@@ -881,4 +918,137 @@ test("dashboard keeps ready blocks visible while events are loading", async ({
   await expect(
     page.getByRole("status", { name: "Загрузка последних событий" }),
   ).toHaveCount(0);
+});
+
+test("VPN exports only a file and the disabled server blocks new configurations", async ({
+  page,
+}) => {
+  await mock(page, "USER");
+  await login(page);
+  await expect(
+    page.getByRole("button", { name: /Рекомендуемый Доступен/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Добавить устройство" }).click();
+  await expect(page.getByLabel("Название", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Amnezia VPN Файл .vpn" }).click();
+  await page.getByLabel("Название", { exact: true }).fill("VPN телефон");
+  await page
+    .getByRole("button", { name: "Создать устройство", exact: true })
+    .click();
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Скачать .vpn файл" }).click();
+  expect((await downloaded).suggestedFilename()).toMatch(/\.vpn$/);
+  await expect(
+    page.getByRole("button", { name: "Сканировать QR-код" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await page.route("**/api/v1/vpn-servers", (route) =>
+    route.fulfill({ json: [{ ...server, enabled: false }] }),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Добавить устройство" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText(/Выберите другой сервер для нового устройства/),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Подключить", exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByRole("button", { name: /Скачать .* файл/ }),
+  ).toBeEnabled();
+});
+
+test("admin adds renames and disables servers and users see the name", async ({
+  page,
+}) => {
+  await mock(page);
+  await login(page);
+  await page.goto("/vpn");
+  await page
+    .getByRole("button", { name: "Добавить сервер", exact: true })
+    .click();
+  await page.getByLabel("Название для пользователей").fill("Медленный");
+  await page.getByLabel("IP-адрес").fill("203.0.113.2");
+  await page
+    .getByLabel("Пароль сервера", { exact: true })
+    .fill("test-password");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Добавить сервер", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Медленный", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Изменить Медленный", exact: true })
+    .click();
+  await page.getByLabel("Название для пользователей").fill("Резервный");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Резервный", exact: true }),
+  });
+  await card
+    .getByRole("button", { name: "Отключить новые подключения" })
+    .click();
+  await expect(
+    card.getByRole("button", { name: "Разрешить новые подключения" }),
+  ).toBeVisible();
+  await page.goto("/my-devices");
+  await page
+    .getByRole("button", { name: /Резервный Новые подключения отключены/ })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Добавить устройство" }),
+  ).toBeDisabled();
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/server-selector.png",
+    fullPage: true,
+  });
+});
+
+test("server selector remains readable in both themes and on mobile", async ({
+  page,
+}) => {
+  await mock(page, "USER");
+  await login(page);
+  await page.route("**/api/v1/vpn-servers", (route) =>
+    route.fulfill({
+      json: [
+        server,
+        { ...server, id: "disabled", name: "Резервный", enabled: false },
+      ],
+    }),
+  );
+  await page.reload();
+  await page
+    .getByRole("button", { name: /Резервный Новые подключения отключены/ })
+    .click();
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(
+      (value) => (document.documentElement.dataset.theme = value),
+      theme,
+    );
+    await page
+      .locator(".server-selector")
+      .screenshot({
+        path: `test-results/servers-${theme}.png`,
+        animations: "disabled",
+      });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    )
+    .toBe(true);
+  await page
+    .locator(".server-selector")
+    .screenshot({
+      path: "test-results/servers-mobile.png",
+      animations: "disabled",
+    });
 });

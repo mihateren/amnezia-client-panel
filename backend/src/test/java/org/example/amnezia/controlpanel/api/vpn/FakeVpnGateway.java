@@ -2,9 +2,37 @@ package org.example.amnezia.controlpanel.api.vpn;
 
 import java.util.Base64;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.example.amnezia.controlpanel.api.exception.ApiException;
+import org.example.amnezia.controlpanel.api.persistence.model.ManagedVpnServer;
 
 public class FakeVpnGateway implements VpnGateway {
+  public final Map<UUID, FakeVpnGateway> servers = new ConcurrentHashMap<>();
+
+  @Override
+  public VpnGateway forServer(ManagedVpnServer server) {
+    return servers.computeIfAbsent(server.id(), id -> new FakeVpnGateway());
+  }
+
+  @Override
+  public ManagedVpnServer discover(ManagedVpnServer s) {
+    return new ManagedVpnServer(
+        s.id(),
+        s.name(),
+        s.ip(),
+        s.sshPort(),
+        s.username(),
+        s.passwordEncrypted(),
+        "test-host-key",
+        "amnezia-awg2",
+        "awg0",
+        "10.8.1.0/24",
+        33763,
+        s.enabled(),
+        s.createdAt());
+  }
+
   public enum Failure {
     NONE,
     SSH,

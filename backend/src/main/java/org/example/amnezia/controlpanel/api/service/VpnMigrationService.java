@@ -58,7 +58,7 @@ public class VpnMigrationService {
   }
 
   public boolean outdated(Device device) {
-    return device.generation() != state().generation();
+    return device.serverId() == null && device.generation() != state().generation();
   }
 
   public long requireAvailable() {
@@ -70,6 +70,7 @@ public class VpnMigrationService {
   }
 
   public void requireConfig(Device device) {
+    if (device.serverId() != null) return;
     long generation = requireAvailable();
     if (device.generation() != generation)
       throw ApiException.conflict(
@@ -82,9 +83,12 @@ public class VpnMigrationService {
     try {
       auth.active(actor);
       var state = state();
-      long outdated =
-          devices.byUser(actor).stream().filter(d -> d.generation() != state.generation()).count();
-      return new VpnMigrationResponse(state.generation(), state.maintenance(), outdated, !state.maintenance() && monitor.unavailable());
+      long outdated = devices.byUser(actor).stream().filter(this::outdated).count();
+      return new VpnMigrationResponse(
+          state.generation(),
+          state.maintenance(),
+          outdated,
+          !state.maintenance() && monitor.unavailable());
     } finally {
       lock.unlock();
     }

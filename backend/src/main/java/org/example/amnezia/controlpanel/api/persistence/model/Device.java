@@ -12,7 +12,38 @@ public record Device(
     String publicKey,
     String privateKeyEncrypted,
     Instant createdAt,
-    long generation) {
+    long generation,
+    UUID serverId,
+    ClientType clientType) {
+  public enum ClientType {
+    AMNEZIA_VPN,
+    AMNEZIA_WG
+  }
+
+  public Device(
+      UUID id,
+      UUID userId,
+      String name,
+      Icon icon,
+      String vpnIp,
+      String publicKey,
+      String privateKeyEncrypted,
+      Instant createdAt,
+      long generation) {
+    this(
+        id,
+        userId,
+        name,
+        icon,
+        vpnIp,
+        publicKey,
+        privateKeyEncrypted,
+        createdAt,
+        generation,
+        null,
+        ClientType.AMNEZIA_WG);
+  }
+
   public Device(
       UUID id,
       UUID userId,

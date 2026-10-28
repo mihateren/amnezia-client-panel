@@ -34,6 +34,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ConfigService {
+  private final ServerCatalog catalog;
+  private final NativeVpnConfig nativeConfig;
   private final VpnServerSettings servers;
   private final VpnMigrationService migration;
   private final DeviceService service;
@@ -49,6 +51,8 @@ public class ConfigService {
   private final AuditService audit;
 
   public ConfigService(
+      ServerCatalog catalog,
+      NativeVpnConfig nativeConfig,
       VpnServerSettings servers,
       VpnMigrationService migration,
       DeviceService service,
@@ -62,6 +66,8 @@ public class ConfigService {
       ReentrantLock lock,
       @Qualifier(DatabaseBeans.SQLITE_TX_TEMPLATE_BEAN) TransactionTemplate tx,
       AuditService audit) {
+    this.catalog = catalog;
+    this.nativeConfig = nativeConfig;
     this.servers = servers;
     this.migration = migration;
     this.service = service;
@@ -101,7 +107,8 @@ public class ConfigService {
     migration.requireConfig(device);
     var owner = users.find(device.userId()).orElseThrow(ApiException::notFound);
     if (owner.status() != User.Status.ACTIVE) throw ApiException.notFound();
-    var parsed = AwgConfig.parse(vpn.readConfig());
+    var gateway = catalog.gateway(device.serverId());
+    var parsed = AwgConfig.parse(gateway.readConfig());
     if (!parsed.hasPeer(device.publicKey())) throw ApiException.notFound();
     var text =
         new StringBuilder("[Interface]\nPrivateKey = ")
@@ -113,23 +120,37 @@ public class ConfigService {
             .append("\n");
     var parameters = parsed.clientParameters();
     parameters.forEach((name, value) -> text.append(name).append(" = ").append(value).append("\n"));
-    var signature = config.vpn().clientSignature();
+    var signature = device.serverId() == null ? config.vpn().clientSignature() : "<r 64>";
     if (!parameters.containsKey("I1") && signature != null && !signature.isBlank()) {
       text.append("I1 = ").append(signature).append("\n");
     }
     text.append("\n[Peer]\nPublicKey = ")
-        .append(vpn.serverPublicKey())
+        .append(gateway.serverPublicKey())
         .append("\nPresharedKey = ")
         .append(parsed.peerPsk(device.publicKey()))
         .append("\nEndpoint = ")
-        .append(servers.endpoint())
+        .append(
+            device.serverId() == null
+                ? servers.endpoint()
+                : catalog.require(device.serverId()).endpoint())
         .append("\nAllowedIPs = ")
         .append(config.vpn().allowedIps())
         .append("\nPersistentKeepalive = 25\n");
-    return text.toString();
+    return device.clientType() == Device.ClientType.AMNEZIA_VPN
+        ? nativeConfig.encode(text.toString(), device)
+        : text.toString();
+  }
+
+  public String extension(UUID actor, UUID id) {
+    return service.owned(actor, id).clientType() == Device.ClientType.AMNEZIA_VPN
+        ? ".vpn"
+        : ".conf";
   }
 
   public byte[] qr(UUID actor, UUID id) {
+    if (service.owned(actor, id).clientType() != Device.ClientType.AMNEZIA_WG)
+      throw ApiException.conflict(
+          "QR_NOT_AVAILABLE", "Для Amnezia VPN доступно только скачивание файла .vpn.");
     var content = config(actor, id, false);
     try {
       var matrix =

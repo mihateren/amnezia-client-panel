@@ -49,7 +49,10 @@ public class ConfigController implements DeviceConfigurationApi {
         .contentType(MediaType.APPLICATION_OCTET_STREAM)
         .header(
             HttpHeaders.CONTENT_DISPOSITION,
-            "attachment; filename=\"device-" + deviceId + ".conf\"")
+            "attachment; filename=\"device-"
+                + deviceId
+                + service.extension(context.actor(), deviceId)
+                + "\"")
         .body(new ByteArrayResource(text.getBytes(StandardCharsets.UTF_8)));
   }
 

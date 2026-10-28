@@ -18,15 +18,10 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN}
       SQLITE_URL: jdbc:sqlite:/data/panel.db
-      SSH_PRIVATE_KEY: /run/secrets/ssh_key
-      SSH_KNOWN_HOSTS: /run/secrets/known_hosts
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
       - panel-data:/data
-    secrets:
-      - ssh_key
-      - known_hosts
     read_only: true
     tmpfs:
       - /tmp:uid=10001,gid=10001,mode=0700,exec
@@ -89,10 +84,4 @@ volumes:
   panel-data:
   prometheus-data:
   grafana-data:
-
-secrets:
-  ssh_key:
-    file: ${SSH_KEY_FILE:?Set SSH_KEY_FILE}
-  known_hosts:
-    file: ${SSH_KNOWN_HOSTS_FILE:?Set SSH_KNOWN_HOSTS_FILE}
 
